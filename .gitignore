@@ -1,0 +1,18 @@
+# Compiled and Intermediate files
+bin/
+obj/
+
+# Linux
+Makefile
+libs/Makefile
+**/*.make
+
+# Windows
+**/*.sln
+**/*.vcxproj
+**/*.vcxproj.user
+**/*.vcxproj.filters
+.vs/
+
+# Imgui
+imgui.ini
