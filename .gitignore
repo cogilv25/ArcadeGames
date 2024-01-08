@@ -1,0 +1,9 @@
+# Compiled and Intermediate files
+bin/
+
+# Windows
+**/*.sln
+**/*.vcxproj
+**/*.vcxproj.user
+**/*.vcxproj.filters
+.vs/
