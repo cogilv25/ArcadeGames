@@ -90,9 +90,12 @@ project "Launcher"
             "pthread"
         }
 
-include "lib/glfw.lua"
-include "lib/glad.lua"
-include "lib/glm.lua"
 
-include "src/games/sokoban.lua"
-include "src/games/dancefloor.lua"
+group "Dependencies"
+    include "lib/glfw.lua"
+    include "lib/glad.lua"
+    include "lib/glm.lua"
+
+group "Games"
+    include "src/games/sokoban.lua"
+    include "src/games/dancefloor.lua"
