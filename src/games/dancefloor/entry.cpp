@@ -135,7 +135,7 @@ void entryPoint(Window& win)
 		drawGeometry(floor.geom);
 
 		useShader(textShader);
-		drawTextBox(tb, 0.5f, 0.5f);
+		drawTextBox(tb, 0.0f, 0.15f);
 
 		updateDanceFloor(floor);
 
