@@ -16,7 +16,9 @@ GameList initGameList()
 {
 #if defined(_DEBUG) or defined(__DEBUG)
     const char* path = "bin/Debug/games/";
-#else
+#elif defined(_RELEASE)
+    const char* path = "bin/Release/games/";
+#elif defined(_PRODUCTION)
     const char* path = "games/";
 #endif
 
@@ -75,8 +77,6 @@ int main()
     bool clicking = false;
     bool ignoreEscape = false;
     unsigned int selectedGame = 0;
-    double timer = 0;
-    double time = 0;
     while (!win.shouldClose)
     {
 
@@ -122,14 +122,6 @@ int main()
 
         if (getMouseButtonDown(win, true))
             clicking = true;
-
-        //For Testing
-       /* time = getTime();
-        if (timer + 1.0 < time)
-        {
-            std::cout << "Cursor Y Position: " << cPos.y << "\n";
-            timer = time;
-        }*/
 
     }
 

@@ -16,7 +16,7 @@ project(pName)
 		pName.."/*.h"
 	}
 
-	filter "system:windows"
+	filter {"system:windows", "configurations:not Production"}
 		defines "_CRT_SECURE_NO_WARNINGS"
 		prebuildcommands {"cd ../../bin/%{cfg.buildcfg} & if not exist games mkdir games"}
 		postbuildcommands{ "cd ../../bin/%{cfg.buildcfg} & copy /D " .. pName .. ".dll games" }

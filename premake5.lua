@@ -8,7 +8,8 @@ workspace "Arcade Games"
     configurations
     {
         "Debug",
-        "Release" 
+        "Release",
+        "Production"
     }
 
     flags "MultiProcessorCompile"
@@ -20,6 +21,13 @@ workspace "Arcade Games"
 
     filter "configurations:Release"
         defines "_RELEASE"
+        runtime "Release"
+        optimize "Speed"
+        symbols "Off"
+        flags "LinkTimeOptimization"
+
+    filter "configurations:Production"
+        defines "_PRODUCTION"
         runtime "Release"
         optimize "Speed"
         symbols "Off"
