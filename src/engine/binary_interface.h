@@ -18,6 +18,11 @@ struct Window
     void* glfwRef = 0;
 };
 
+struct CursorPos
+{
+    double x, y;
+};
+
 
 struct Geometry
 {
@@ -88,6 +93,7 @@ TextBox(*createTextBox)(const char*, float, BitmapFont&, float, float, float);
 BitmapFont(*loadFontBitmap)(const char*);
 void(*drawTextBox)(TextBox&, float, float);
 void (*destroyBitmapFont)(BitmapFont&);
+CursorPos(*getCursorPosition)(Window& win);
 
 void entryPoint(Window& win);
 extern "C"
@@ -107,6 +113,7 @@ extern "C"
         loadFontBitmap = (BitmapFont(*)(const char*))engineFunctions[10];
         drawTextBox = (void(*)(TextBox&, float, float))engineFunctions[11];
         destroyBitmapFont = (void (*)(BitmapFont&))engineFunctions[12];
+        getCursorPosition = (CursorPos(*)(Window & win))engineFunctions[13];
 
         entryPoint(win);
     }
@@ -149,7 +156,8 @@ bool runGameDLL(Window& win, const char* path)
         (void(*)()) createTextBox,
         (void(*)()) loadFontBitmap,
         (void(*)()) drawTextBox,
-        (void(*)()) destroyBitmapFont
+        (void(*)()) destroyBitmapFont,
+        (void(*)()) getCursorPosition
 
     };
 

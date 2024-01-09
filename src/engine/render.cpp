@@ -6,6 +6,8 @@
 #include <iostream>
 
 extern std::shared_ptr<char> loadFileAsCharArray(const char* path);
+unsigned int currentShader = 0;
+
 
 Shader createShader(const char* vsPath, const char* fsPath)
 {
@@ -72,7 +74,8 @@ Shader createShader(const char* vsPath, const char* fsPath)
 
 void useShader(Shader& s)
 {
-	GL(glUseProgram(s.ID));
+	currentShader = s.ID;
+	GL(glUseProgram(currentShader));
 }
 
 void clearFrameBuffer()

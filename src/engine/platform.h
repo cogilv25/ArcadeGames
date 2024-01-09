@@ -2,6 +2,7 @@
 #define AG_PLATFORM_H
 
 struct Window;
+struct CursorPos;
 
 void createWindow(Window&);
 void destroyWindow(Window&);
@@ -19,6 +20,7 @@ void updateWindow(Window&);
 unsigned long long getClock();
 double getTime();
 bool getKeyDown(Window&, int key);
-void getCursorPosition(Window&, double& x, double& y);
+CursorPos getCursorPosition(Window&);
+bool getMouseButtonDown(Window&, bool left);
 
 #endif

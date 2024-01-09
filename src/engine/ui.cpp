@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 
+extern unsigned int currentShader;
+
 BitmapFont loadFontBitmap(const char * path)
 {
 	unsigned short height = 4096, width = 4096;
@@ -46,7 +48,7 @@ TextBox createTextBox(const char* text, float scale, BitmapFont& font, float r, 
 {
 	TextBox tb {0};
 	unsigned int n = tb.length = strlen(text);
-	float x = -0.99f, y = 0.85f;
+	float x = -0.99f, y = 1.0f;
 
 	tb.vertices = new UIVertex[n * 4];
 
@@ -134,6 +136,10 @@ TextBox createTextBox(const char* text, float scale, BitmapFont& font, float r, 
 void drawTextBox(TextBox& box, float x, float y)
 {
 	GL(glBindVertexArray(box.vao));
+
+	GL(unsigned int loc = glGetUniformLocation(currentShader, "trans"));
+
+	GL(glUniform2f(loc, x, y));
 
 	GL(glDrawElements(GL_TRIANGLES, box.length * 6, GL_UNSIGNED_INT, (void*)0));
 }

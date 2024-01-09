@@ -68,7 +68,16 @@ bool getKeyDown(Window& win, int key)
 	return glfwGetKey((GLFWwindow*)win.glfwRef, key) == GLFW_PRESS;
 }
 
-void getCursorPosition(Window& win, double& x, double& y)
+CursorPos getCursorPosition(Window& win)
 {
-	glfwGetCursorPos((GLFWwindow*)win.glfwRef, &x, &y);
+	CursorPos pos = { 0,0 };
+	glfwGetCursorPos((GLFWwindow*)win.glfwRef, &pos.x, &pos.y);
+	pos.x /= (double)win.width / 2.0;
+	pos.y /= (double)win.height / 2.0;
+	return pos;
+}
+
+bool getMouseButtonDown(Window& win, bool left)
+{
+	return glfwGetMouseButton((GLFWwindow*)win.glfwRef,left? GLFW_MOUSE_BUTTON_LEFT: GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
 }
