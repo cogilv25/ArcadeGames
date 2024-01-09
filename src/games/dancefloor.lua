@@ -1,3 +1,5 @@
+pName = "DanceFloor"
+
 project "DanceFloor"
 	kind "SharedLib"
 	language "C++"
@@ -16,3 +18,5 @@ project "DanceFloor"
 
 	filter "system:windows"
 		defines "_CRT_SECURE_NO_WARNINGS"
+		prebuildcommands {"cd ../../bin/%{cfg.buildcfg} & if not exist games mkdir games"}
+		postbuildcommands{ "cd ../../bin/%{cfg.buildcfg} & copy /D " .. pName .. ".dll games" }
