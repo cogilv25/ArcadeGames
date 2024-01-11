@@ -1,6 +1,8 @@
 /*
     Maintains a consistant ABI between the launcher, engine and games
     Also provides functions for linking any game dll to the final application at runtime.
+
+    TODO: Too awkward and too much repitition, rewrite and/or reorganize.. possibly autogen with a script?
 */
 #ifndef AG_BINARY_INTERFACE_H
 #define AG_BINARY_INTERFACE_H
@@ -23,6 +25,27 @@ struct CursorPos
     double x, y;
 };
 
+struct BasicVertex
+{
+    float x, y;
+    float r, g, b;
+};
+
+struct Rect
+{
+    unsigned int vao;
+    unsigned int vbo;
+    unsigned int ibo;
+
+    float vertices[4*5];
+    unsigned int indices[6];
+};
+
+struct Image
+{
+    int width, height;
+    unsigned char* data;
+};
 
 struct Geometry
 {
@@ -36,6 +59,20 @@ struct Geometry
     unsigned int vertexCount;
     unsigned int indexCount;
     unsigned int stride;
+};
+
+struct BasicGrid
+{
+    float width;
+    float height;
+    unsigned int xCells;
+    unsigned int yCells;
+    float xGap;
+    float yGap;
+    float* colors;
+    unsigned int colorCount;
+
+    Geometry geom;
 };
 
 struct Shader
@@ -74,6 +111,7 @@ struct TextBox
     unsigned int ibo;
 
     UIVertex* vertices;
+    BitmapFont* font;
 };
 
 
@@ -94,6 +132,14 @@ BitmapFont(*loadFontBitmap)(const char*);
 void(*drawTextBox)(TextBox&, float, float);
 void (*destroyBitmapFont)(BitmapFont&);
 CursorPos(*getCursorPosition)(Window& win);
+Rect(*createRect)(float, float, float, float, float);
+void(*drawRect)(Rect&, float, float);
+BasicGrid(*createBasicGrid)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int);
+void (*drawBasicGrid)(BasicGrid& grid, float x, float y, float z);
+unsigned int (*createTexture)(Image&);
+void (*destroyTexture)(unsigned int ID);
+Image (*loadImage)(const char* path);
+void (*destroyImage)(Image&);
 
 void entryPoint(Window& win);
 extern "C"
@@ -114,6 +160,14 @@ extern "C"
         drawTextBox = (void(*)(TextBox&, float, float))engineFunctions[11];
         destroyBitmapFont = (void (*)(BitmapFont&))engineFunctions[12];
         getCursorPosition = (CursorPos(*)(Window & win))engineFunctions[13];
+        createRect = (Rect(*)(float, float, float, float, float))engineFunctions[14];
+        drawRect = (void(*)(Rect&,float,float))engineFunctions[15];
+        createBasicGrid = (BasicGrid(*)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int))engineFunctions[16];
+        drawBasicGrid = (void (*)(BasicGrid & grid, float x, float y, float z))engineFunctions[17];
+        createTexture = (unsigned int(*)(Image&))engineFunctions[18];
+        destroyTexture = (void (*)(unsigned int))engineFunctions[19];
+        loadImage = (Image(*)(const char* path))engineFunctions[20];
+        destroyImage = (void (*)(Image&))engineFunctions[21];
 
         entryPoint(win);
     }
@@ -157,7 +211,15 @@ bool runGameDLL(Window& win, const char* path)
         (void(*)()) loadFontBitmap,
         (void(*)()) drawTextBox,
         (void(*)()) destroyBitmapFont,
-        (void(*)()) getCursorPosition
+        (void(*)()) getCursorPosition,
+        (void(*)()) createRect,
+        (void(*)()) drawRect,
+        (void(*)()) createBasicGrid,
+        (void(*)()) drawBasicGrid,
+        (void(*)()) createTexture,
+        (void(*)()) destroyTexture,
+        (void(*)()) loadImage,
+        (void(*)()) destroyImage
 
     };
 

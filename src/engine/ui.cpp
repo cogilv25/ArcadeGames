@@ -50,6 +50,7 @@ TextBox createTextBox(const char* text, float scale, BitmapFont& font, float r, 
 	unsigned int n = tb.length = strlen(text);
 	float x = -0.99f, y = 1.0f;
 
+	tb.font = &font;
 	tb.vertices = new UIVertex[n * 4];
 
 	for (int i = 0; i < n; i++)
@@ -136,6 +137,8 @@ TextBox createTextBox(const char* text, float scale, BitmapFont& font, float r, 
 void drawTextBox(TextBox& box, float x, float y)
 {
 	GL(glBindVertexArray(box.vao));
+
+	GL(glBindTexture(GL_TEXTURE_2D, box.font->ID));
 
 	GL(unsigned int loc = glGetUniformLocation(currentShader, "trans"));
 
