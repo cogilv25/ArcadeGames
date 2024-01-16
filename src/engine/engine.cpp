@@ -31,7 +31,7 @@ void initializeEngine(Window& win)
     GL(glEnable(GL_BLEND));
     GL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GL(glEnable(GL_DEPTH_TEST));
-
+    GL(glDepthFunc(GL_LESS));
 
     GL(glEnable(GL_CULL_FACE));
 }
