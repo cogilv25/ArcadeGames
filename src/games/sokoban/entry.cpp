@@ -6,6 +6,14 @@
 
 char* mapName;
 
+float screenSpaceMatrix[]
+{ 
+	2.0f/1920.0f,0.0f,0.0f,-1.0f,
+	0.0f,2.0f/1080.0f,0.0f,-1.0f,
+	0.0f,0.0f,1.0f,0.0f,
+	0.0f,0.0f,0.0f,1.0f
+};
+
 struct UVQuad
 {
 	float s0, s1, t0, t1;
@@ -109,6 +117,8 @@ Map loadMap(const char* path)
 		}
 		++n;
 	}
+
+	fclose(file);
 
 	if (n != map.width * map.height)
 	{
@@ -293,6 +303,97 @@ TextureGrid createTextureGrid(float width, float height, unsigned int xCells, un
 	return out;
 }
 
+TextBox newCreateTextBox(const char* text, float scale, BitmapFont& font, float r, float g, float b)
+{
+	TextBox tb{ 0 };
+	unsigned int n = tb.length = strlen(text);
+	float x = -0.99f, y = 1.0f;
+	
+	tb.font = &font;
+	tb.vertices = new UIVertex[n * 4];
+
+	for (int i = 0; i < n; i++)
+	{
+		int cv = i * 4;
+		UIVertex* p = &tb.vertices[cv];
+		float s0 = font.cdata[text[i] - 32].x0 / 4096.0f;
+		float s1 = font.cdata[text[i] - 32].x1 / 4096.0f;
+		float t0 = font.cdata[text[i] - 32].y0 / 4096.0f;
+		float t1 = font.cdata[text[i] - 32].y1 / 4096.0f;
+
+		float xoff = (font.cdata[text[i] - 32].xoff / 1024.0f);
+		float x0 = s0 * 4.0f, x1 = s1 * 4.0f;
+		float y0 = t0 * 8.0f, y1 = t1 * 8.0f;
+		float w = (x1 - x0);
+		float h = (y1 - y0);
+		float yoff = -(font.cdata[text[i] - 32].yoff / 512.0f + h);
+
+		//Top-Right
+		p->x = x + xoff + w; p->y = y + yoff + h;
+		p->r = r; p->g = g; p->b = b;
+		p->s = s1; p->t = t0;
+		p++;
+
+		//Top-Left
+		p->x = x + xoff; p->y = y + yoff + h;
+		p->r = r; p->g = g; p->b = b;
+		p->s = s0; p->t = t0;
+		p++;
+
+		//Bottom-Left
+		p->x = x + xoff; p->y = y + yoff;
+		p->r = r; p->g = g; p->b = b;
+		p->s = s0; p->t = t1;
+		p++;
+
+		//Bottom-Right
+		p->x = x + xoff + w; p->y = y + yoff;
+		p->r = r; p->g = g; p->b = b;
+		p->s = s1; p->t = t1;
+
+		x += font.cdata[text[i] - 32].xadvance / 1024.0f;
+	}
+
+	//Create Vertex Array, Vertex Buffer and Index Buffer
+	/*GL(glGenVertexArrays(1, &tb.vao));
+	GL(glBindVertexArray(tb.vao));
+
+	GL(glGenBuffers(1, &tb.vbo));
+	GL(glBindBuffer(GL_ARRAY_BUFFER, tb.vbo));
+	GL(glBufferData(GL_ARRAY_BUFFER, sizeof(UIVertex) * n * 4, tb.vertices, GL_DYNAMIC_DRAW));
+
+	GL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)0));
+	GL(glEnableVertexAttribArray(0));
+	GL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)(sizeof(float) * 2)));
+	GL(glEnableVertexAttribArray(1));
+	GL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)(sizeof(float) * 5)));
+	GL(glEnableVertexAttribArray(2));*/
+
+	unsigned int* indices_data = new unsigned int[n * 6];
+
+	int offset = 0;
+	for (int i = 0; i < n * 4; i += 4)
+	{
+		indices_data[offset] = i + 0;
+		indices_data[offset + 1] = i + 1;
+		indices_data[offset + 2] = i + 2;
+		indices_data[offset + 3] = i + 2;
+		indices_data[offset + 4] = i + 3;
+		indices_data[offset + 5] = i + 0;
+
+		offset += 6;
+	}
+
+	/*GL(glGenBuffers(1, &tb.ibo));
+	GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tb.ibo));
+	GL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * n * 6, indices_data, GL_DYNAMIC_DRAW));*/
+
+	delete[] indices_data;
+	delete tb.vertices;
+
+	return tb;
+}
+
 void translatePlayer(TextureGrid& grid, State& state, unsigned int x, unsigned int y)
 {
 	unsigned char inFront = getTextureGridValue(grid, state.playerX + x, state.playerY + y);
@@ -447,12 +548,17 @@ void updateState(Window& win, State& state)
 void entryPoint(Window& win)
 {
 
-	Shader basic = createShader("src/shaders/basic.vs", "src/shaders/basic.fs");
+	Shader basic = createShader("src/games/sokoban/shaders/basic.vs", "src/games/sokoban/shaders/basic.fs");
 	Shader sokobanShader = createShader("src/games/sokoban/shaders/main.vs", "src/games/sokoban/shaders/main.fs");
-	
+	Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
+
+	BitmapFont font = loadFontBitmap("D:/AG/assets/Spectral.ttf");
+
+	TextBox titleTextBox = createTextBox("Sokoban", 1.0f, font, 1.0f, 1.0f, 1.0f);
+
 	float color[] = {1.0f,1.0f,1.0f,0.8f,0.8f,0.8f};
-	BasicGrid floorGrid = createBasicGrid(2.0f, 2.0f, 31, 17, 0.0f, 0.0f, color, 2);
-	TextureGrid gameGrid = createTextureGrid(2.0f,2.0f,31,17,0.0002f,0.0001f);
+	BasicGrid floorGrid = createBasicGrid(1080.0f, 1080.0f, 15, 15, 0.0f, 0.0f, color, 2);
+	TextureGrid gameGrid = createTextureGrid(1080.0f, 1080.0f,15,15,0.0f,0.0f);
 
 	Image im = loadImage("assets/test.png");
 	unsigned int tex = createTexture(im);
@@ -467,13 +573,20 @@ void entryPoint(Window& win)
 
 	initMapCentred(map, gameGrid, state);
 
+	useShader(basic);
+	bindMat4(basic.ID, "mat", screenSpaceMatrix);
+	useShader(sokobanShader);
+	bindMat4(sokobanShader.ID, "mat", screenSpaceMatrix);
+	float adjust[]{ (float)(1920 - 1080) / 1920.0f * 2.0f, 0.0f };
+	bindVec2(sokobanShader.ID, "trans", adjust);
 	while (!win.shouldClose)
 	{
 		updateTextureGrid(gameGrid);
 
 		clearFrameBuffer();
 		useShader(basic);
-		drawBasicGrid(floorGrid,0.0f,0.0f,0.0f);
+		
+		drawBasicGrid(floorGrid,(float)(1920-1080)/1920.0f*2.0f ,0.001f,0.0f);
 		useShader(sokobanShader);
 		drawGeometry(gameGrid.geom);
 

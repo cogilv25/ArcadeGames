@@ -10,6 +10,8 @@ struct Image;
 Shader createShader(const char* vsCode, const char* fsCode);
 
 void useShader(Shader&);
+void bindMat4(unsigned int shaderID, const char* name, float* matrix);
+void bindVec2(unsigned int shaderID, const char* name, float* vector);
 
 void clearFrameBuffer();
 

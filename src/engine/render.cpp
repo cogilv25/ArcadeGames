@@ -273,3 +273,15 @@ void drawBasicGrid(BasicGrid& grid, float x, float y, float z)
 
 	drawGeometry(grid.geom);
 }
+
+void bindMat4(unsigned int shaderID, const char* name, float* mat)
+{
+	unsigned int loc = GL(glGetUniformLocation(shaderID, name));
+	GL(glUniformMatrix4fv(loc, 1, false, mat);)
+}
+
+void bindVec2(unsigned int shaderID, const char* name, float* vec)
+{
+	unsigned int loc = GL(glGetUniformLocation(shaderID, name));
+	GL(glUniform2f(loc, vec[0], vec[1]));
+}

@@ -105,6 +105,7 @@ struct TextBox
 {
     //Number of characters
     unsigned int length;
+
     //OpenGL buffers
     unsigned int vao;
     unsigned int vbo;
@@ -140,6 +141,8 @@ unsigned int (*createTexture)(Image&);
 void (*destroyTexture)(unsigned int ID);
 Image (*loadImage)(const char* path);
 void (*destroyImage)(Image&);
+void (*bindMat4)(unsigned int shaderID, const char* name, float* matrix);
+void (*bindVec2)(unsigned int shaderID, const char* name, float* vector);
 
 void entryPoint(Window& win);
 extern "C"
@@ -168,6 +171,8 @@ extern "C"
         destroyTexture = (void (*)(unsigned int))engineFunctions[19];
         loadImage = (Image(*)(const char* path))engineFunctions[20];
         destroyImage = (void (*)(Image&))engineFunctions[21];
+        bindMat4 = (void(*)(unsigned int, const char*, float*))engineFunctions[22];
+        bindVec2 = (void(*)(unsigned int, const char*, float*))engineFunctions[23];
 
         entryPoint(win);
     }
@@ -219,7 +224,9 @@ bool runGameDLL(Window& win, const char* path)
         (void(*)()) createTexture,
         (void(*)()) destroyTexture,
         (void(*)()) loadImage,
-        (void(*)()) destroyImage
+        (void(*)()) destroyImage,
+        (void(*)()) bindMat4,
+        (void(*)()) bindVec2
 
     };
 
