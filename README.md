@@ -9,4 +9,5 @@ A collection of arcade games such as snake and tetris written in c++ using glfw,
 
 ## Current State
 - ~~No playable games, No engine, initial readme, project and dependancies set up.~~
-- No playable games, some basic engine code, basic "Dancefloor" example.
+- ~~No playable games, some basic engine code, basic "Dancefloor" example.~~
+- Basic 'engine', Dancefloor example and playable Sokoban (Although it is janky and has memory issues due to being thrown together).
