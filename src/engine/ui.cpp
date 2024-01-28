@@ -9,7 +9,23 @@
 
 extern unsigned int currentShader;
 
-BitmapFont loadFontBitmap(const char * path)
+#define AG_MAX_SHARED_FONTS 4
+Font sharedFonts[AG_MAX_SHARED_FONTS];
+const char* sharedFontNames[AG_MAX_SHARED_FONTS];
+unsigned int nSharedFonts = 0;
+
+Font * getEngineFont(const char * name)
+{
+	int i = 0;
+	for (; i < nSharedFonts; ++i)
+	{
+		if (strcmp(name, sharedFontNames[i]) == 0)
+			break;
+	}
+	return ((i < nSharedFonts) ? &sharedFonts[i] : 0);
+}
+
+Font loadFont(const char * path)
 {
 	unsigned short height = 4096, width = 4096;
 	unsigned char* heapAlloc = (unsigned char*)malloc(300000 + (height * width));
@@ -17,14 +33,19 @@ BitmapFont loadFontBitmap(const char * path)
 	unsigned char * temp_bitmap = heapAlloc + 300000;
 
 	stbtt_bakedchar* cdata = (stbtt_bakedchar*)malloc(sizeof(stbtt_bakedchar) * 96); // ASCII 32..126 is 95 glyphs
-	BitmapFont font {0, width, height, (BitmapCharData*)cdata};
+	Font font {true, 0, 0, width, height, (BitmapCharData*)cdata};
 
-
-	fread(ttf_buffer, 1, 1 << 20, fopen(path, "rb"));
-	stbtt_BakeFontBitmap(ttf_buffer, 0, 96.0, temp_bitmap, width, height, 32, 96, cdata); // no guarantee this fits!
+	FILE* f = fopen(path, "rb");
+	fread(ttf_buffer, 1, 1 << 20, f);
+	int retVal = stbtt_BakeFontBitmap(ttf_buffer, 0, 96.0, temp_bitmap, width, height, 32, 96, cdata); // no guarantee this fits!
+	if (retVal < 0)
+	{
+		font.valid = false;
+		return font;
+	}
 	// can free ttf_buffer at this point
-	glGenTextures(1, &font.ID);
-	glBindTexture(GL_TEXTURE_2D, font.ID);
+	glGenTextures(1, &font.textureID);
+	glBindTexture(GL_TEXTURE_2D, font.textureID);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, temp_bitmap);
 	// can free temp_bitmap at this point
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -36,15 +57,38 @@ BitmapFont loadFontBitmap(const char * path)
 	std::cout << "\nXAdvance: " << cdata[c].xadvance;*/
 
 	free(heapAlloc);
+	fclose(f);
+
+	IFDBG(std::cout << "Font successfully loaded!\n";)
 	return font;
 }
 
-void destroyBitmapFont(BitmapFont& font)
+Font& loadSharedFont(const char* name, const char* path)
+{
+	Font* x = getEngineFont(name);
+	if (x != 0)
+		return *x;
+	
+	Font font = loadFont(path);
+
+	if (nSharedFonts >= AG_MAX_SHARED_FONTS)
+	{
+		std::cerr << "Unable to share font: AG_MAX_SHARED_FONTS reached\n";
+		return font;
+	}
+
+	sharedFontNames[nSharedFonts] = name;
+	sharedFonts[nSharedFonts] = font;
+	font.ID = nSharedFonts;
+	return sharedFonts[nSharedFonts++];
+}
+
+void destroyBitmapFont(Font& font)
 {
 	free(font.cdata);
 }
 
-TextBox createTextBox(const char* text, float scale, BitmapFont& font, float r, float g, float b)
+TextBox createTextBox(const char* text, float scale, Font& font, float r, float g, float b)
 {
 	TextBox tb {0};
 	unsigned int n = tb.length = strlen(text);
@@ -138,7 +182,7 @@ void drawTextBox(TextBox& box, float x, float y)
 {
 	GL(glBindVertexArray(box.vao));
 
-	GL(glBindTexture(GL_TEXTURE_2D, box.font->ID));
+	GL(glBindTexture(GL_TEXTURE_2D, box.font->textureID));
 
 	GL(unsigned int loc = glGetUniformLocation(currentShader, "trans"));
 

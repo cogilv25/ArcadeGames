@@ -124,7 +124,9 @@ void entryPoint(Window& win)
 	Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
 
 
-	BitmapFont font = loadFontBitmap("D:/AG/assets/Spectral.ttf");
+	Font font = loadSharedFont("Spectral", "D:/AG/assets/Spectral.ttf");
+	if (!font.valid)
+		std::cerr << "Could not load font @ D:/AG/assets/Spectral.ttf\n";
 
 	TextBox tb = createTextBox("This is the first thing I made, and just a simple little example..", 1.0f, font, 0.86f, 0.86f, 0.86f);
 

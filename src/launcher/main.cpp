@@ -61,7 +61,9 @@ int main()
     initializeEngine(win);
     Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
 
-    BitmapFont font = loadFontBitmap("D:/AG/assets/Spectral.ttf");
+    Font font = loadSharedFont("Spectral", "D:/AG/assets/Spectral.ttf");
+	if (!font.valid)
+		std::cerr << "Could not load font @ D:/AG/assets/Spectral.ttf\n";
 
     TextBox titleTextBox = createTextBox("Choose a game to play from the list:", 1.0f, font, 1.0f, 1.0f, 1.0f);
 

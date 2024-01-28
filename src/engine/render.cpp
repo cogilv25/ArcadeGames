@@ -108,6 +108,11 @@ unsigned int createTexture(Image& image)
 	return id;
 }
 
+void bindTexture(unsigned int id)
+{
+	glBindTexture(GL_TEXTURE_2D, id);
+}
+
 void destroyTexture(unsigned int ID)
 {
 	glDeleteTextures(1, &ID);
@@ -149,7 +154,7 @@ void drawGeometry(Geometry& geom)
 void updateGeometry(Geometry& geom)
 {
 	GL(glBindBuffer(GL_ARRAY_BUFFER, geom.vbo));
-	GL(glBufferSubData(GL_ARRAY_BUFFER, 0, geom.vertexCount * 4 * geom.stride, geom.vertices));
+	GL(glBufferSubData(GL_ARRAY_BUFFER, 0, geom.vertexCount * geom.stride * sizeof(float), geom.vertices));
 }
 
 Rect createRect(float w, float h, float r, float g, float b)
@@ -279,9 +284,15 @@ void bindMat4(unsigned int shaderID, const char* name, float* mat)
 	unsigned int loc = GL(glGetUniformLocation(shaderID, name));
 	GL(glUniformMatrix4fv(loc, 1, false, mat);)
 }
-
+ 
 void bindVec2(unsigned int shaderID, const char* name, float* vec)
 {
 	unsigned int loc = GL(glGetUniformLocation(shaderID, name));
 	GL(glUniform2f(loc, vec[0], vec[1]));
+}
+
+void bindFloat(unsigned int shaderID, const char* name, float f)
+{
+	unsigned int loc = GL(glGetUniformLocation(shaderID, name));
+	GL(glUniform1f(loc, f));
 }

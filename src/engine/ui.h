@@ -5,14 +5,15 @@ struct BitmapCharData;
 
 struct UIVertex;
 
-struct BitmapFont;
+struct Font;
 
 struct TextBox;
 
-BitmapFont loadFontBitmap(const char* path);
-void destroyBitmapFont(BitmapFont&);
+Font loadFont(const char* path);
+Font& loadSharedFont(const char* name, const char* path);
+void destroyBitmapFont(Font&);
 
-TextBox createTextBox(const char* text, float scale, BitmapFont&, float r, float g, float b);
+TextBox createTextBox(const char* text, float scale, Font&, float r, float g, float b);
 void drawTextBox(TextBox& box, float x, float y);
 
 #endif

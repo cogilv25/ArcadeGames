@@ -5,14 +5,16 @@ layout(location = 1) in vec2 tex;
 
 uniform vec2 trans;
 
+uniform float layerPosition;
+
 uniform mat4 mat;
 
 out vec2 texCoords;
 
 void main()
 {
-    vec4 pos = vec4(pPosition.xy, -0.9, 1.0) * mat;
-    gl_Position = vec4(pos.xy + trans, pos.z, pos.w);
+    vec4 pos = vec4(pPosition.xy, layerPosition, 1.0) * mat;
+    gl_Position = vec4(pos.xy + trans, pos.zw);
 
     texCoords = tex;
 }

@@ -94,9 +94,11 @@ struct UIVertex
     float s, t;		// texture coords
 };
 
-struct BitmapFont
+struct Font
 {
+    bool valid;
     unsigned int ID;
+    unsigned int textureID;
     unsigned int width, height;
     BitmapCharData* cdata;
 };
@@ -112,7 +114,8 @@ struct TextBox
     unsigned int ibo;
 
     UIVertex* vertices;
-    BitmapFont* font;
+    Font* font;
+    Geometry geom;
 };
 
 
@@ -128,10 +131,11 @@ double(*getTime)();
 void (*updateGeometry)(Geometry&);
 void (*useShader)(Shader&);
 Shader(*createShader)(const char*, const char*);
-TextBox(*createTextBox)(const char*, float, BitmapFont&, float, float, float);
-BitmapFont(*loadFontBitmap)(const char*);
+TextBox(*createTextBox)(const char*, float, Font&, float, float, float);
+Font(*loadFont)(const char*);
+Font& (*loadSharedFont)(const char*, const char*);
 void(*drawTextBox)(TextBox&, float, float);
-void (*destroyBitmapFont)(BitmapFont&);
+void (*destroyBitmapFont)(Font&);
 CursorPos(*getCursorPosition)(Window& win);
 Rect(*createRect)(float, float, float, float, float);
 void(*drawRect)(Rect&, float, float);
@@ -143,6 +147,8 @@ Image (*loadImage)(const char* path);
 void (*destroyImage)(Image&);
 void (*bindMat4)(unsigned int shaderID, const char* name, float* matrix);
 void (*bindVec2)(unsigned int shaderID, const char* name, float* vector);
+void (*bindTexture)(unsigned int id);
+void (*bindFloat)(unsigned int shaderID, const char* name, float f);
 
 void entryPoint(Window& win);
 extern "C"
@@ -158,21 +164,24 @@ extern "C"
         updateGeometry = (void(*)(Geometry&))engineFunctions[6];
         useShader = (void(*)(Shader&))engineFunctions[7];
         createShader = (Shader(*)(const char*, const char*))engineFunctions[8];
-        createTextBox = (TextBox(*)(const char*, float, BitmapFont&, float, float, float))engineFunctions[9];
-        loadFontBitmap = (BitmapFont(*)(const char*))engineFunctions[10];
-        drawTextBox = (void(*)(TextBox&, float, float))engineFunctions[11];
-        destroyBitmapFont = (void (*)(BitmapFont&))engineFunctions[12];
-        getCursorPosition = (CursorPos(*)(Window & win))engineFunctions[13];
-        createRect = (Rect(*)(float, float, float, float, float))engineFunctions[14];
-        drawRect = (void(*)(Rect&,float,float))engineFunctions[15];
-        createBasicGrid = (BasicGrid(*)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int))engineFunctions[16];
-        drawBasicGrid = (void (*)(BasicGrid & grid, float x, float y, float z))engineFunctions[17];
-        createTexture = (unsigned int(*)(Image&))engineFunctions[18];
-        destroyTexture = (void (*)(unsigned int))engineFunctions[19];
-        loadImage = (Image(*)(const char* path))engineFunctions[20];
-        destroyImage = (void (*)(Image&))engineFunctions[21];
-        bindMat4 = (void(*)(unsigned int, const char*, float*))engineFunctions[22];
-        bindVec2 = (void(*)(unsigned int, const char*, float*))engineFunctions[23];
+        createTextBox = (TextBox(*)(const char*, float, Font&, float, float, float))engineFunctions[9];
+        loadFont = (Font(*)(const char*))engineFunctions[10];
+        loadSharedFont = (Font&(*)(const char*, const char*))engineFunctions[11];
+        drawTextBox = (void(*)(TextBox&, float, float))engineFunctions[12];
+        destroyBitmapFont = (void (*)(Font&))engineFunctions[13];
+        getCursorPosition = (CursorPos(*)(Window & win))engineFunctions[14];
+        createRect = (Rect(*)(float, float, float, float, float))engineFunctions[15];
+        drawRect = (void(*)(Rect&,float,float))engineFunctions[16];
+        createBasicGrid = (BasicGrid(*)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int))engineFunctions[17];
+        drawBasicGrid = (void (*)(BasicGrid & grid, float x, float y, float z))engineFunctions[18];
+        createTexture = (unsigned int(*)(Image&))engineFunctions[19];
+        destroyTexture = (void (*)(unsigned int))engineFunctions[20];
+        loadImage = (Image(*)(const char* path))engineFunctions[21];
+        destroyImage = (void (*)(Image&))engineFunctions[22];
+        bindMat4 = (void(*)(unsigned int, const char*, float*))engineFunctions[23];
+        bindVec2 = (void(*)(unsigned int, const char*, float*))engineFunctions[24];
+        bindTexture = (void(*)(unsigned int))engineFunctions[25];
+        bindFloat = (void(*)(unsigned int, const char*, float))engineFunctions[26];
 
         entryPoint(win);
     }
@@ -213,7 +222,8 @@ bool runGameDLL(Window& win, const char* path)
         (void(*)()) useShader,
         (void(*)()) createShader,
         (void(*)()) createTextBox,
-        (void(*)()) loadFontBitmap,
+        (void(*)()) loadFont,
+        (void(*)()) loadSharedFont,
         (void(*)()) drawTextBox,
         (void(*)()) destroyBitmapFont,
         (void(*)()) getCursorPosition,
@@ -226,7 +236,9 @@ bool runGameDLL(Window& win, const char* path)
         (void(*)()) loadImage,
         (void(*)()) destroyImage,
         (void(*)()) bindMat4,
-        (void(*)()) bindVec2
+        (void(*)()) bindVec2,
+        (void(*)()) bindTexture,
+        (void(*)()) bindFloat
 
     };
 

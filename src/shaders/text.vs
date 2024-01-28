@@ -11,7 +11,7 @@ uniform vec2 trans;
 void main()
 {
 
-    gl_Position = vec4(pPosition.x + trans.x, pPosition.y - trans.y, 0.0, 1.0);
+    gl_Position = vec4(pPosition.x + trans.x, pPosition.y - trans.y, -0.2, 1.0);
 
     vColour = pColour;
     texCoord = tc;

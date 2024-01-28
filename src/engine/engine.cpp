@@ -29,13 +29,14 @@ void initializeEngine(Window& win)
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &engine.maxTextureSize);
 
     GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR));
     GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
     GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
 
     GL(glEnable(GL_BLEND));
     GL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    //GL(glEnable(GL_DEPTH_TEST));
-    //GL(glDepthFunc(GL_LESS));
+    GL(glEnable(GL_DEPTH_TEST));
+    GL(glDepthFunc(GL_LESS));
 
     GL(glEnable(GL_CULL_FACE));
     
