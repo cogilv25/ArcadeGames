@@ -1,5 +1,4 @@
 #include "engine.h"
-#include "binary_interface.h"
 #include "utilities.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -14,6 +13,9 @@ struct Engine
 };
 
 Engine engine;
+Shader ag_text_shader;
+unsigned int ag_text_shader_position_location;
+unsigned int ag_text_shader_colour_location;
 
 void initializeEngine(Window& win)
 {
@@ -28,18 +30,28 @@ void initializeEngine(Window& win)
 
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &engine.maxTextureSize);
 
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-
     GL(glEnable(GL_BLEND));
     GL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
     GL(glEnable(GL_DEPTH_TEST));
     GL(glDepthFunc(GL_LESS));
 
     GL(glEnable(GL_CULL_FACE));
     
+
+    GL(ag_text_shader = createShader("src/shaders/text.vs", "src/shaders/text.fs"));
+    GL(glUseProgram(ag_text_shader.ID));
+    GL(ag_text_shader_position_location = glGetUniformLocation(ag_text_shader.ID, "position"));
+    GL(ag_text_shader_colour_location = glGetUniformLocation(ag_text_shader.ID, "colour"));
+}
+
+const Shader& getEngineShader(AG_SHADER shader)
+{
+    switch (shader)
+    {
+    case TEXT:
+        return ag_text_shader;
+    }
 }
 
 void destroyEngine()

@@ -1,8 +1,26 @@
 #ifndef AG_PLATFORM_H
 #define AG_PLATFORM_H
 
-struct Window;
-struct CursorPos;
+struct Window
+{
+    const char* title = "Hello World";
+    int glVersion[2] = { 4, 0 };
+    bool glCoreProfile = true;
+    int width = 1920;
+    int height = 1080;
+    bool fullscreen = false;
+    bool borderless = false;
+    bool shouldClose = false;
+    void* glfwRef = 0;
+};
+
+struct CursorPos
+{
+    double x, y;
+};
+
+
+#ifndef AG_GAME_DLL
 
 void createWindow(Window&);
 void destroyWindow(Window&);
@@ -23,4 +41,6 @@ bool getKeyDown(Window&, int key);
 CursorPos getCursorPosition(Window&);
 bool getMouseButtonDown(Window&, bool left);
 
+
+#endif
 #endif

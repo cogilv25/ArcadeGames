@@ -1,7 +1,6 @@
 #include "render.h"
 #include "glad/glad.h"
 #include "utilities.h"
-#include "binary_interface.h"
 #include <memory>
 #include <iostream>
 #define STB_IMAGE_IMPLEMENTATION
@@ -74,7 +73,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
     return s;
 }
 
-void useShader(Shader& s)
+void useShader(const Shader& s)
 {
 	currentShader = s.ID;
 	GL(glUseProgram(currentShader));
@@ -104,7 +103,9 @@ unsigned int createTexture(Image& image)
 	glBindTexture(GL_TEXTURE_2D, id);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
+	GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 	glGenerateMipmap(GL_TEXTURE_2D);
+
 	return id;
 }
 

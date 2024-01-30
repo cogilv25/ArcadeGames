@@ -1,5 +1,4 @@
 #include "platform.h"
-#include "binary_interface.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 

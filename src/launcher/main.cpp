@@ -59,40 +59,39 @@ int main()
     Window win{ "Arcade Games Launcher" };
     createWindow(win);
     initializeEngine(win);
-    Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
+    const Shader& textShader = getEngineShader(TEXT);
 
-    Font font = loadSharedFont("Spectral", "D:/AG/assets/Spectral.ttf");
+    Font font = loadSharedFont("Spectral", "assets/Spectral.ttf");
 	if (!font.valid)
-		std::cerr << "Could not load font @ D:/AG/assets/Spectral.ttf\n";
+		std::cerr << "Could not load font @ assets/Spectral.ttf\n";
 
-    TextBox titleTextBox = createTextBox("Choose a game to play from the list:", 1.0f, font, 1.0f, 1.0f, 1.0f);
+    StaticText titleText = createStaticText("Choose a game to play from the list:", font);
 
     GameList games = initGameList();
-    TextBox* gameTextBoxes = (TextBox*)malloc(sizeof(TextBox) * games.count * 2);
+    StaticText* gameTexts = (StaticText*)malloc(sizeof(StaticText) * games.count);
     for(int i = 0; i < games.count; ++i)
     {
-        gameTextBoxes[i*2] = createTextBox(games.names[i], 1.0f, font, 0.75f, 0.75f, 0.75f);
-        gameTextBoxes[i*2+1] = createTextBox(games.names[i], 1.0f, font, 1.0f, 1.0f, 1.0f);
+        gameTexts[i] = createStaticText(games.names[i], font);
     }
 
-
     bool clicking = false;
-    bool ignoreEscape = false;
+    bool ignoreEscape = true;
     unsigned int selectedGame = 0;
     while (!win.shouldClose)
     {
-
         updateWindow(win);
 
         clearFrameBuffer();
 
+        drawStaticText(titleText,-0.5f, 0.88f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+
         useShader(textShader);
-        drawTextBox(titleTextBox, 0.5f, 0.1f);
-        float yoff = 0.275f, ygap = 0.133f;
+        float yoff = 0.725f, ygap = -0.133f;
+
         for (int i = 0; i < games.count; ++i)
-        {
-            drawTextBox(selectedGame != i + 1 ? gameTextBoxes[i * 2] : gameTextBoxes[i * 2 + 1], 0.0f, yoff + (ygap * i));
-        }
+            drawStaticText(gameTexts[i], -0.99f, yoff + ygap * i, 0.0f, 1.0f, 1.0f, 1.0f, (i+1==selectedGame)?1.0f:0.75f);
+
+        
         if (ignoreEscape)
         {
             if (!getKeyDown(win, 256))
@@ -104,12 +103,8 @@ int main()
         
 
         CursorPos cPos = getCursorPosition(win);
-        if (cPos.y < yoff - 0.1f || cPos.y > yoff + ygap * (games.count - 1))
-            selectedGame = 0;
-        else
-        {
-            selectedGame = (unsigned int)((cPos.y - yoff + 0.1f) / ygap)+1;
-        }
+        float cPosOffset = -0.04f;
+        selectedGame = (unsigned int)( (cPos.y - 0.04f) / -ygap);
 
         if(clicking && !getMouseButtonDown(win,true))
         {

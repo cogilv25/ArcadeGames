@@ -13,12 +13,6 @@ struct DanceFloor
 	Geometry geom;
 };
 
-struct DFVertex
-{
-	float x, y;
-	float r, g, b;
-};
-
 float palette[][3]
 {
 	{0.8f,0.8f,0.8f},
@@ -33,14 +27,13 @@ DanceFloor createDanceFloor(unsigned int width, unsigned int height, double peri
 {
 	DanceFloor df{ width, height, period, 0 };
 
-	// Create RNG for range 0.0f - 1.0f
-	srand(clock());
 
-	DFVertex* vertices  = new DFVertex[width * height * 4];
+	BasicVertex* vertices  = new BasicVertex[width * height * 4];
 
 	//Ekk
 	float tileWidth = 2.0f / (float)width;
 	float tileHeight = 2.0f / (float)height;
+	srand(clock());
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
@@ -103,7 +96,7 @@ void updateDanceFloor(DanceFloor& df)
 		{
 			float * color = palette[rand()%6];
 			int n = (j * df.width + i) * 4;
-			DFVertex* vertices = ((DFVertex*)df.geom.vertices) + n;
+			BasicVertex* vertices = ((BasicVertex*)df.geom.vertices) + n;
 
 			vertices[0].r = color[0]; vertices[0].g = color[1]; vertices[0].b = color[2];
 			vertices[1].r = color[0]; vertices[1].g = color[1]; vertices[1].b = color[2];
@@ -118,17 +111,16 @@ void updateDanceFloor(DanceFloor& df)
 }
 
 
-void entryPoint(Window& win)
+void dllMain(Window& win)
 {
 	Shader basicShader = createShader("src/shaders/basic.vs", "src/shaders/basic.fs");
-	Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
+	const Shader& textShader = getEngineShader(TEXT);
 
-
-	Font font = loadSharedFont("Spectral", "D:/AG/assets/Spectral.ttf");
+	Font font = loadSharedFont("Spectral", "assets/Spectral.ttf");
 	if (!font.valid)
-		std::cerr << "Could not load font @ D:/AG/assets/Spectral.ttf\n";
+		std::cerr << "Could not load font @ assets/Spectral.ttf\n";
 
-	TextBox tb = createTextBox("This is the first thing I made, and just a simple little example..", 1.0f, font, 0.86f, 0.86f, 0.86f);
+	StaticText tb = createStaticText("This is the first thing I made, and just a simple little example...", font);
 
 	DanceFloor floor = createDanceFloor(16, 9, 0.3);
 	while (!win.shouldClose)
@@ -137,7 +129,7 @@ void entryPoint(Window& win)
 		drawGeometry(floor.geom);
 
 		useShader(textShader);
-		drawTextBox(tb, 0.0f, 0.15f);
+		drawStaticText(tb, -0.99f, 0.85f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
 		updateDanceFloor(floor);
 

@@ -1,6 +1,9 @@
 #ifndef AG_UTILITIES_H
 #define AG_UTILITIES_H
 
+
+#ifndef AG_GAME_DLL
+
 #ifdef _DEBUG
 #include "stdio.h"
 #define GL(x)                                                                              \
@@ -26,4 +29,6 @@
 
 #endif
 
+
+#endif
 #endif

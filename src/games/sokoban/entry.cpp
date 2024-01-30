@@ -9,9 +9,9 @@ char* mapName;
 char* levelText;
 char* timerText;
 char* stepsText;
-TextBox levelTextBox;
-TextBox timerTextBox;
-TextBox stepsTextBox;
+DynamicText levelTextBox;
+DynamicText timerTextBox;
+DynamicText stepsTextBox;
 unsigned int steps;
 double timerStartTime;
 double timerDisplayTimer;
@@ -21,19 +21,27 @@ bool highscoresVisible = false;
 double hsTimes[LEVELS] { 1.843, 5.820, 4.025, 33.019, 40.428 };
 unsigned int hsSteps[LEVELS] { 15, 31, 23, 151, 175 };
 unsigned int highscoresAchieved = 0;
-TextBox hsTimesTextBoxes[LEVELS];
-TextBox hsStepsTextBoxes[LEVELS];
-TextBox hsLevelsTextBoxes[LEVELS];
+DynamicText hsTimesTextBoxes[LEVELS];
+DynamicText hsStepsTextBoxes[LEVELS];
+DynamicText hsLevelsTextBoxes[LEVELS];
 char* hsLevelsText[LEVELS] { "1", "2", "3", "4", "5" };
 char* hsTimesText[LEVELS] { (char*)malloc(9), (char*)malloc(9), (char*)malloc(9), (char*)malloc(9), (char*)malloc(9)};
 char* hsStepsText[LEVELS] { (char*)malloc(4), (char*)malloc(4), (char*)malloc(4), (char*)malloc(4), (char*)malloc(4) };
-float hsTableXPositions[] { 0.04f, 0.356f, 0.64f };
-float hsTableYPositions[]{ 1.45f, 1.57f, 1.69f, 1.81f, 1.93f };
+float hsTableXPositions[] { -0.95f, -0.6437f, -0.367f };
+float hsTableYPositions[]{ -0.45f, -0.57f, -0.69f, -0.81f, -0.93f };
+float hsColours[][3]{
+	{ 1.0f, 1.0f, 1.0f },									//Default - White
+	{ 219.0f / 255.0f, 188.0f / 255.0f, 35.0f / 255.0f },	//New Record - Gold
+	{ 0.0f, 135.0f / 255.0f, 1.0f }							//Level Complete - Blue
+};
+unsigned char hsTableColours[][LEVELS]{
+	{ 0, 0, 0, 0, 0 }, //Levels
+	{ 0, 0, 0, 0, 0 }, //Steps
+	{ 0, 0, 0, 0, 0 }  //Times
+};
 
 float hsTimesColours[LEVELS * 3];
 float hsStepsColours[LEVELS * 3];
-
-float completedColour[]{ 219, 188, 76 };
 
 float screenSpaceMatrix[]
 { 
@@ -384,121 +392,30 @@ TextureGrid createTextureGrid(float width, float height, unsigned int xCells, un
 	return out;
 }
 
-TextBox newCreateTextBox(Font& font, unsigned int maxLength)
-{
-	TextBox tb{ 0 };
-	unsigned int n = tb.length = maxLength;
-	
-	tb.font = &font;
-	tb.vertices = (UIVertex*) malloc(n * 4 * sizeof(UIVertex));
-
-	unsigned int* indices_data = new unsigned int[n * 6];
-
-	int offset = 0;
-	for (int i = 0; i < n * 4; i += 4)
-	{
-		indices_data[offset] = i + 0;
-		indices_data[offset + 1] = i + 1;
-		indices_data[offset + 2] = i + 2;
-		indices_data[offset + 3] = i + 2;
-		indices_data[offset + 4] = i + 3;
-		indices_data[offset + 5] = i + 0;
-
-		offset += 6;
-	}
-
-
-	unsigned int cPL[]{ 2,3,2 };
-	tb.geom = createGeometry((float*)tb.vertices, indices_data, cPL, tb.length * 4, tb.length * 6, 3, 7);
-
-	return tb;
-}
-
-void populateTextBox(TextBox& tb, const char* text, float scale, float r, float g, float b)
-{
-	Font& font = *tb.font;
-	float x = -1.0f, y = 1.0f;
-	bool eos = false;
-	for (int i = 0; i < tb.length; i++)
-	{
-		if (text[i] <= 0 || text[i] > 126 )
-			eos = true;
-		int cv = i * 4;
-		char c = (eos ? ' ' : text[i]) - 32;
-		UIVertex* p = &tb.vertices[cv];
-		float s0 = font.cdata[c].x0 / 4096.0f;
-		float s1 = font.cdata[c].x1 / 4096.0f;
-		float t0 = font.cdata[c].y0 / 4096.0f;
-		float t1 = font.cdata[c].y1 / 4096.0f;
-
-		float xoff = (font.cdata[c].xoff / 1024.0f);
-		float x0 = s0 * 4.0f, x1 = s1 * 4.0f;
-		float y0 = t0 * 8.0f, y1 = t1 * 8.0f;
-		float w = (x1 - x0);
-		float h = (y1 - y0);
-		float yoff = -(font.cdata[c].yoff / 512.0f + h);
-
-		//Top-Right
-		p->x = x + xoff + w; p->y = y + yoff + h;
-		p->r = r; p->g = g; p->b = b;
-		p->s = s1; p->t = t0;
-		p++;
-
-		//Top-Left
-		p->x = x + xoff; p->y = y + yoff + h;
-		p->r = r; p->g = g; p->b = b;
-		p->s = s0; p->t = t0;
-		p++;
-
-		//Bottom-Left
-		p->x = x + xoff; p->y = y + yoff;
-		p->r = r; p->g = g; p->b = b;
-		p->s = s0; p->t = t1;
-		p++;
-
-		//Bottom-Right
-		p->x = x + xoff + w; p->y = y + yoff;
-		p->r = r; p->g = g; p->b = b;
-		p->s = s1; p->t = t1;
-
-		x += font.cdata[c].xadvance / 1024.0f;
-	}
-
-	updateGeometry(tb.geom);
-}
-
 void updateHighScore(unsigned int level, double time, unsigned int steps)
 {
 	bool newTime = hsTimes[level] > time;
+	bool sameOrNewTime = hsTimes[level] >= time;
 	bool newSteps = hsSteps[level] > steps;
-	bool sameSteps = hsSteps[level] == steps;
-
-	float r[2]{ 219.0f / 255.0f, 0.0f };
-	float g[2]{ 188.0f / 255.0f, 135.0f/255.0f };
-	float b[2]{ 35.0f / 255.0f, 1.0f };
+	bool sameOrNewSteps = hsSteps[level] >= steps;
 
 	if (newTime)
 	{
 		hsTimes[level] = time;
 		sprintf(hsTimesText[level], "%.3fs", time);
-		if (newSteps || sameSteps)
-		{
-			hsSteps[level] = steps;
-			sprintf(hsStepsText[level], "%d", steps);
-			populateTextBox(hsStepsTextBoxes[level], hsStepsText[level], 1.0f, r[1], g[1], b[1]);
-			populateTextBox(hsTimesTextBoxes[level], hsTimesText[level], 1.0f, r[1], g[1], b[1]);
-		}
-		else
-		{
-			populateTextBox(hsTimesTextBoxes[level], hsTimesText[level], 1.0f, r[0], g[0], b[0]);
-		}
+		setDynamicTextContents(hsTimesTextBoxes[level], hsTimesText[level]);
+		hsTableColours[2][level] = 1;
 	}
-	else if (newSteps)
+	if (newSteps)
 	{
 		hsSteps[level] = steps;
 		sprintf(hsStepsText[level], "%d", steps);
-		populateTextBox(hsStepsTextBoxes[level], hsStepsText[level], 1.0f, r[0], g[0], b[0]);
+		setDynamicTextContents(hsStepsTextBoxes[level], hsStepsText[level]);
+		hsTableColours[1][level] = 1;
 	}
+
+
+	hsTableColours[0][level] = ((unsigned char)sameOrNewTime + (unsigned char)sameOrNewSteps)/2*2;
 
 }
 
@@ -538,7 +455,7 @@ void translatePlayer(TextureGrid& grid, State& state, unsigned int x, unsigned i
 		timerStartTime = getTime();
 	}
 	sprintf(stepsText, "Steps: %d", steps < 1000 ? ++steps : 1000 );
-	populateTextBox(stepsTextBox, stepsText, 1.0f, 1.0f, 1.0f, 1.0f);
+	setDynamicTextContents(stepsTextBox, stepsText);
 
 	if(inFront == 2)
 		setTextureGridValue(grid, state.playerX, state.playerY, 6);
@@ -598,7 +515,7 @@ void updateState(Window& win, State& state)
 			reloadMap(state);
 			steps = 0;
 			sprintf(stepsText, "Steps: %d", steps);
-			populateTextBox(stepsTextBox, stepsText, 1.0f, 1.0f, 1.0f, 1.0f);
+			setDynamicTextContents(stepsTextBox, stepsText);
 			timerStartTime = getTime();
 		}
 		if (getKeyDown(win, 264))
@@ -653,7 +570,7 @@ void updateState(Window& win, State& state)
 			state.pauseInput = true;
 			mapName[26] = (char)(state.level + 48);
 			levelText[7] = mapName[26] + 1;
-			populateTextBox(levelTextBox, levelText, 1.0f, 1.0f, 1.0f, 1.0f);
+			setDynamicTextContents(levelTextBox, levelText);
 
 			clearTextureGrid(*state.grid, 0);
 			destroyMap(*state.map);
@@ -661,7 +578,7 @@ void updateState(Window& win, State& state)
 			initMapCentred(*state.map, *state.grid, state);
 
 			sprintf(stepsText, "Steps: %d", steps = 0);
-			populateTextBox(stepsTextBox, stepsText, 1.0f, 1.0f, 1.0f, 1.0f);
+			setDynamicTextContents(stepsTextBox, stepsText);
 			timerStartTime = getTime();
 		}
 	}
@@ -681,8 +598,9 @@ void updateState(Window& win, State& state)
 		levelTime = levelTime > 600.0 ? 600.0 : levelTime;
 	}
 
-	sprintf(timerText, "Time: %.3fs", levelTime);
-	populateTextBox(timerTextBox, timerText, 1.0f, 1.0f, 1.0f, 1.0f);
+	//Only modify the text that needs modified
+	sprintf(timerText + 6, "%.3fs", levelTime);
+	setDynamicTextContents(timerTextBox, timerText);
 
 	if (state.nObj == state.completedObj)
 	{
@@ -691,7 +609,7 @@ void updateState(Window& win, State& state)
 		++state.level %= state.nLevels;
 		mapName[26] = (char)(state.level+48);
 		levelText[7] = mapName[26] + 1;
-		populateTextBox(levelTextBox, levelText, 1.0f, 1.0f, 1.0f, 1.0f);
+		setDynamicTextContents(levelTextBox, levelText);
 
 		clearTextureGrid(*state.grid, 0);
 		destroyMap(*state.map);
@@ -699,7 +617,7 @@ void updateState(Window& win, State& state)
 		initMapCentred(*state.map, *state.grid, state);
 
 		sprintf(stepsText, "Steps: %d", steps = 0);
-		populateTextBox(stepsTextBox, stepsText, 1.0f, 1.0f, 1.0f, 1.0f);
+		setDynamicTextContents(stepsTextBox, stepsText);
 	}
 	if (getKeyDown(win, 256))
 	{
@@ -707,42 +625,43 @@ void updateState(Window& win, State& state)
 	}
 }
 
-void entryPoint(Window& win)
+void dllMain(Window& win)
 {
 
 	Shader basic = createShader("src/games/sokoban/shaders/basic.vs", "src/games/sokoban/shaders/basic.fs");
 	Shader sokobanShader = createShader("src/games/sokoban/shaders/main.vs", "src/games/sokoban/shaders/main.fs");
 	Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
+	const Shader& textShader2 = getEngineShader(TEXT);
 
 	Font font = loadFont("D:/AG/assets/Spectral.ttf");
 
-	TextBox titleTextBox = createTextBox("Sokoban", 1.0f, font, 1.0f, 1.0f, 1.0f);
-	TextBox highscoresTextBox = createTextBox("Highscores", 1.0f, font, 1.0f, 1.0f, 1.0f);
-	TextBox hsLevelTextBox = createTextBox("Level", 1.0f, font, 1.0f, 1.0f, 1.0f);
-	TextBox hsStepsTextBox = createTextBox("Steps", 1.0f, font, 1.0f, 1.0f, 1.0f);
-	TextBox hsTimeTextBox = createTextBox("Time", 1.0f, font, 1.0f, 1.0f, 1.0f);
+	StaticText titleTextBox = createStaticText("Sokoban", font);
+	StaticText highscoresTextBox = createStaticText("Highscores", font);
+	StaticText hsLevelTextBox = createStaticText("Level", font);
+	StaticText hsStepsTextBox = createStaticText("Steps", font);
+	StaticText hsTimeTextBox = createStaticText("Time", font);
 
-	levelTextBox = newCreateTextBox(font, 9);
-	populateTextBox(levelTextBox, "Level: 1", 1.0f, 1.0f, 1.0f, 1.0f);
+	levelTextBox = createDynamicText(font, 9);
+	setDynamicTextContents(levelTextBox, "Level: 1");
 
-	timerTextBox = newCreateTextBox(font, 15);
-	populateTextBox(timerTextBox, "Time: 0.000s", 1.0f, 1.0f, 1.0f, 1.0f);
+	timerTextBox = createDynamicText(font, 15);
+	setDynamicTextContents(timerTextBox, "Time: 0.000s");
 
-	stepsTextBox = newCreateTextBox(font, 12);
-	populateTextBox(stepsTextBox, "Steps: 0", 1.0f, 1.0f, 1.0f, 1.0f);
+	stepsTextBox = createDynamicText(font, 12);
+	setDynamicTextContents(stepsTextBox, "Steps: 0");
 
 	for (int i = 0; i < LEVELS; ++i)
 	{
-		hsLevelsTextBoxes[i] = newCreateTextBox(font, 2);
-		populateTextBox(hsLevelsTextBoxes[i], hsLevelsText[i], 1.0f, 1.0f, 1.0f, 1.0f);
+		hsLevelsTextBoxes[i] = createDynamicText(font, 2);
+		setDynamicTextContents(hsLevelsTextBoxes[i], hsLevelsText[i]);
 
-		hsStepsTextBoxes[i] = newCreateTextBox(font, 4);
+		hsStepsTextBoxes[i] = createDynamicText(font, 4);
 		sprintf(hsStepsText[i], "%d", hsSteps[i]);
-		populateTextBox(hsStepsTextBoxes[i], hsStepsText[i], 1.0f, 1.0f, 1.0f, 1.0f);
+		setDynamicTextContents(hsStepsTextBoxes[i], hsStepsText[i]);
 
-		hsTimesTextBoxes[i] = newCreateTextBox(font, 9);
+		hsTimesTextBoxes[i] = createDynamicText(font, 9);
 		sprintf(hsTimesText[i], "%.3fs", hsTimes[i]);
-		populateTextBox(hsTimesTextBoxes[i], hsTimesText[i], 1.0f, 1.0f, 1.0f, 1.0f);
+		setDynamicTextContents(hsTimesTextBoxes[i], hsTimesText[i]);
 
 		for (int j = 0; j < 3; j++)
 		{
@@ -823,37 +742,27 @@ void entryPoint(Window& win)
 		bindFloat(sokobanShader.ID, "layerPosition", -0.15f);
 		drawGeometry(menu2BG.geom);
 
-		useShader(textShader);
-		drawTextBox(titleTextBox, 0.1f, 0.12f);
-		drawTextBox(highscoresTextBox, 0.28f, 1.11f);
-		drawTextBox(hsLevelTextBox, 0.027f, 1.33f); 
-		drawTextBox(hsStepsTextBox, 0.343f, 1.33f);
-		drawTextBox(hsTimeTextBox, 0.627f, 1.33f);
+		useShader(textShader2);
+		drawStaticText(titleTextBox, -0.89f, 0.88f,-0.2f,1.0f,1.0f,1.0f,1.0f);
+		drawStaticText(highscoresTextBox, -0.71f, -0.11f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawStaticText(hsLevelTextBox, -0.9605f, -0.33f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawStaticText(hsStepsTextBox, -0.6435f, -0.33f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawStaticText(hsTimeTextBox, -0.3668f, -0.33f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawDynamicText(levelTextBox, -0.98f, 0.64f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawDynamicText(timerTextBox, -0.98f, 0.52f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+		drawDynamicText(stepsTextBox, -0.98f, 0.4f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
 
+		DynamicText* dtTables[3]{hsLevelsTextBoxes, hsStepsTextBoxes, hsTimesTextBoxes};
 		for (int i = 0; i < LEVELS; ++i)
-		{
-			float pos[2]{ hsTableXPositions[0], hsTableYPositions[i] };
-			bindVec2(textShader.ID, "trans", pos);
-			drawGeometry(hsLevelsTextBoxes[i].geom);
-			pos[0] = hsTableXPositions[1];
-			bindVec2(textShader.ID, "trans", pos);
-			drawGeometry(hsStepsTextBoxes[i].geom);
-			pos[0] = hsTableXPositions[2];
-			bindVec2(textShader.ID, "trans", pos);
-			drawGeometry(hsTimesTextBoxes[i].geom);
-
-		}
-		
-
-		bindVec2(textShader.ID, "trans", levelTextBoxPosition);
-		drawGeometry(levelTextBox.geom);
-
-		bindVec2(textShader.ID, "trans", timerTextBoxPosition);
-		drawGeometry(timerTextBox.geom);
-
-		bindVec2(textShader.ID, "trans", stepsTextBoxPosition);
-		drawGeometry(stepsTextBox.geom);
-
+			for (int j = 0; j < 3; j++)
+			{
+				float x = hsTableXPositions[j];
+				float y = hsTableYPositions[i];
+				float r = hsColours[hsTableColours[j][i]][0];
+				float g = hsColours[hsTableColours[j][i]][1];
+				float b = hsColours[hsTableColours[j][i]][2];
+				drawDynamicText(dtTables[j][i], x, y, -0.2f, r, g, b, 1.0f);
+			}
 
 		updateState(win, state);
 		updateWindow(win);

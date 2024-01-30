@@ -1,13 +1,13 @@
 #version 400 core
 
-in vec3 vColour;
-in vec2 texCoord;
+in vec2 texCoordFrag;
 out vec4 fColour;
 
 uniform sampler2D tex;
+uniform vec4 colour;
 
 void main()
 {
-    float c = texture(tex, texCoord).r;
-    fColour = vec4(vColour.rgb, c);
+    fColour = colour;
+    fColour.a *= texture(tex, texCoordFrag).r;
 } 
