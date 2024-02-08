@@ -62,7 +62,7 @@ Font loadFont(const char * path)
 	free(heapAlloc);
 	fclose(f);
 
-	IFDBG(std::cout << "Font successfully loaded!\n";)
+	IFDBG(std::cout << "Font successfully loaded!\n\n";)
 	return font;
 }
 
@@ -86,14 +86,14 @@ Font& loadSharedFont(const char* name, const char* path)
 	return sharedFonts[nSharedFonts++];
 }
 
-void destroyBitmapFont(Font& font)
+void destroyFont(Font& font)
 {
 	free(font.cdata);
 }
 
 StaticText createStaticText(const char* text, Font& font)
 {
-	StaticText st{ 0, (unsigned int)strlen(text), &font };
+	StaticText st{ 0, 0, 0, (unsigned int)strlen(text), &font };
 	float x = 0.0f, y = 0.0f;
 
 	TextVertex* vertices = (TextVertex*)malloc(sizeof(TextVertex) * 4 * st.length);
@@ -380,4 +380,18 @@ void drawTextBox(TextBox& box, float x, float y)
 	GL(glUniform2f(loc, x, y));
 
 	GL(glDrawElements(GL_TRIANGLES, box.length * 6, GL_UNSIGNED_INT, (void*)0));
+}
+
+
+void destroyStaticText(StaticText& st)
+{
+	GL(glDeleteBuffers(1, &st.vbo);)
+	GL(glDeleteBuffers(1, &st.ibo);)
+	
+	GL(glDeleteVertexArrays(1, &st.vao);)
+}
+
+void destroyDynamicText(DynamicText& dt)
+{
+	destroyGeometry(dt.geom);
 }

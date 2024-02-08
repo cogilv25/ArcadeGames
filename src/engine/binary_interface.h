@@ -1,153 +1,213 @@
-/*
-    Maintains a consistant ABI between the launcher, engine and games
-    Also provides functions for linking any game dll to the final application at runtime.
+// AG_BinaryInterface.h
 
-    TODO: Too awkward and too much repitition, rewrite and/or reorganize.. possibly autogen with a script?
-*/
 #ifndef AG_BINARY_INTERFACE_H
 #define AG_BINARY_INTERFACE_H
+
 #include "engine.h"
 
-#ifdef AG_GAME_DLL
-bool(*getKeyDown)(Window&, int key);
-void(*updateWindow)(Window&);
-void(*clearFrameBuffer)();
-void(*drawGeometry)(Geometry&);
-Geometry (*createGeometry)(float*, unsigned int*, unsigned int*, unsigned int, unsigned int, unsigned int, unsigned int);
-double(*getTime)();
-void (*updateGeometry)(Geometry&);
-void (*useShader)(const Shader&);
-Shader(*createShader)(const char*, const char*);
-TextBox(*createTextBox)(const char*, float, Font&, float, float, float);
-Font(*loadFont)(const char*);
-Font& (*loadSharedFont)(const char*, const char*);
-void(*drawTextBox)(TextBox&, float, float);
-void (*destroyBitmapFont)(Font&);
-CursorPos(*getCursorPosition)(Window& win);
-Rect(*createRect)(float, float, float, float, float);
-void(*drawRect)(Rect&, float, float);
-BasicGrid(*createBasicGrid)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int);
-void (*drawBasicGrid)(BasicGrid& grid, float x, float y, float z);
-unsigned int (*createTexture)(Image&);
-void (*destroyTexture)(unsigned int ID);
-Image (*loadImage)(const char* path);
-void (*destroyImage)(Image&);
-void (*bindMat4)(unsigned int shaderID, const char* name, float* matrix);
-void (*bindVec2)(unsigned int shaderID, const char* name, float* vector);
-void (*bindTexture)(unsigned int id);
-void (*bindFloat)(unsigned int shaderID, const char* name, float f);
-StaticText (*createStaticText)(const char* text, Font&);
-void (*drawStaticText)(StaticText&, float x, float y, float z, float r, float g, float b, float a);
-const Shader& (*getEngineShader)(AG_SHADER shader);
-DynamicText (*createDynamicText)(Font&, unsigned int maxCharacters);
-void (*setDynamicTextContents)(DynamicText&, const char* contents);
-void (*drawDynamicText)(DynamicText&, float x, float y, float z, float r, float g, float b, float a);
 
-void dllMain(Window& win);
+typedef void (*VoidFunc)();
+
+// Function pointer types for engine functions
+typedef bool (*GetKeyDownFunc)(Window&, int);
+typedef void (*UpdateWindowFunc)(Window&);
+typedef void (*ClearFrameBufferFunc)();
+typedef void (*DrawGeometryFunc)(Geometry&);
+typedef Geometry(*CreateGeometryFunc)(float*, unsigned int*, unsigned int*, unsigned int, unsigned int, unsigned int, unsigned int);
+typedef double (*GetTimeFunc)();
+typedef void (*UpdateGeometryFunc)(Geometry&);
+typedef void (*UseShaderFunc)(const Shader&);
+typedef Shader(*CreateShaderFunc)(const char*, const char*);
+typedef Font(*LoadFontFunc)(const char*);
+typedef Font& (*LoadSharedFontFunc)(const char*, const char*);
+typedef void (*DestroyFontFunc)(Font&);
+typedef CursorPos(*GetCursorPositionFunc)(Window&);
+typedef BasicGrid(*CreateBasicGridFunc)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int);
+typedef void (*DrawBasicGridFunc)(BasicGrid&, float x, float y, float z);
+typedef unsigned int (*CreateTextureFunc)(Image&);
+typedef void (*DestroyTextureFunc)(unsigned int);
+typedef Image(*LoadImageFunc)(const char* path);
+typedef void (*DestroyImageFunc)(Image&);
+typedef void (*BindMat4Func)(unsigned int shaderID, const char* name, float* matrix);
+typedef void (*BindVec2Func)(unsigned int shaderID, const char* name, float* vector);
+typedef void (*BindTextureFunc)(unsigned int id);
+typedef void (*BindFloatFunc)(unsigned int shaderID, const char* name, float f);
+typedef StaticText(*CreateStaticTextFunc)(const char* text, Font&);
+typedef void (*DrawStaticTextFunc)(StaticText&, float x, float y, float z, float r, float g, float b, float a);
+typedef const Shader& (*GetEngineShaderFunc)(AG_SHADER shader);
+typedef DynamicText(*CreateDynamicTextFunc)(Font&, unsigned int);
+typedef void (*SetDynamicTextContentsFunc)(DynamicText&, const char*);
+typedef void (*DrawDynamicTextFunc)(DynamicText&, float x, float y, float z, float r, float g, float b, float a);
+typedef void (*DestroyGeeometryFunc)(Geometry&);
+typedef void (*DestroyShaderFunc)(Shader&);
+typedef void (*DestroyStaticText)(StaticText&);
+typedef void (*DestroyDynamicText)(DynamicText&);
+typedef void (*DestroyBasicGridFunc)(BasicGrid&);
+
+#ifdef AG_GAME_DLL
+
+// Function pointers
+GetKeyDownFunc getKeyDown;
+UpdateWindowFunc updateWindow;
+ClearFrameBufferFunc clearFrameBuffer;
+DrawGeometryFunc drawGeometry;
+CreateGeometryFunc createGeometry;
+GetTimeFunc getTime;
+UpdateGeometryFunc updateGeometry;
+UseShaderFunc useShader;
+CreateShaderFunc createShader;
+LoadFontFunc loadFont;
+LoadSharedFontFunc loadSharedFont;
+DestroyFontFunc destroyFont;
+GetCursorPositionFunc getCursorPosition;
+CreateBasicGridFunc createBasicGrid;
+DrawBasicGridFunc drawBasicGrid;
+CreateTextureFunc createTexture;
+DestroyTextureFunc destroyTexture;
+LoadImageFunc loadImage;
+DestroyImageFunc destroyImage;
+BindMat4Func bindMat4;
+BindVec2Func bindVec2;
+BindTextureFunc bindTexture;
+BindFloatFunc bindFloat;
+CreateStaticTextFunc createStaticText;
+DrawStaticTextFunc drawStaticText;
+GetEngineShaderFunc getEngineShader;
+CreateDynamicTextFunc createDynamicText;
+SetDynamicTextContentsFunc setDynamicTextContents;
+DrawDynamicTextFunc drawDynamicText;
+DestroyGeeometryFunc destroyGeometry;
+DestroyShaderFunc destroyShader;
+DestroyStaticText destroyStaticText;
+DestroyDynamicText destroyDynamicText;
+DestroyBasicGridFunc destroyBasicGrid;
+
+void dllMain(Window& win, VoidFunc* functionArray)
+{
+
+    // Your initialization code for the DLL can go here
+    // This function will be called when the DLL is loaded
+}
+
 extern "C"
 {
-    __declspec(dllexport) void __cdecl runGame(Window& win, void(**engineFunctions)())
+    void dllMain(Window&);
+    __declspec(dllexport) void __cdecl runGame(Window& win, VoidFunc* functionArray)
     {
-        getKeyDown = (bool(*)(Window&, int))engineFunctions[0];
-        updateWindow = (void(*)(Window&))engineFunctions[1];
-        clearFrameBuffer = engineFunctions[2];
-        drawGeometry = (void(*)(Geometry&))engineFunctions[3];
-        createGeometry = (Geometry(*)(float*, unsigned int*, unsigned int*, unsigned int, unsigned int, unsigned int, unsigned int))engineFunctions[4];
-        getTime = (double(*)())engineFunctions[5];
-        updateGeometry = (void(*)(Geometry&))engineFunctions[6];
-        useShader = (void(*)(const Shader&))engineFunctions[7];
-        createShader = (Shader(*)(const char*, const char*))engineFunctions[8];
-        createTextBox = (TextBox(*)(const char*, float, Font&, float, float, float))engineFunctions[9];
-        loadFont = (Font(*)(const char*))engineFunctions[10];
-        loadSharedFont = (Font&(*)(const char*, const char*))engineFunctions[11];
-        drawTextBox = (void(*)(TextBox&, float, float))engineFunctions[12];
-        destroyBitmapFont = (void (*)(Font&))engineFunctions[13];
-        getCursorPosition = (CursorPos(*)(Window & win))engineFunctions[14];
-        createRect = (Rect(*)(float, float, float, float, float))engineFunctions[15];
-        drawRect = (void(*)(Rect&,float,float))engineFunctions[16];
-        createBasicGrid = (BasicGrid(*)(float, float, unsigned int, unsigned int, float, float, float*, unsigned int))engineFunctions[17];
-        drawBasicGrid = (void (*)(BasicGrid & grid, float x, float y, float z))engineFunctions[18];
-        createTexture = (unsigned int(*)(Image&))engineFunctions[19];
-        destroyTexture = (void (*)(unsigned int))engineFunctions[20];
-        loadImage = (Image(*)(const char* path))engineFunctions[21];
-        destroyImage = (void (*)(Image&))engineFunctions[22];
-        bindMat4 = (void(*)(unsigned int, const char*, float*))engineFunctions[23];
-        bindVec2 = (void(*)(unsigned int, const char*, float*))engineFunctions[24];
-        bindTexture = (void(*)(unsigned int))engineFunctions[25];
-        bindFloat = (void(*)(unsigned int, const char*, float))engineFunctions[26];
-        createStaticText = (StaticText(*)(const char*, Font&))engineFunctions[27];
-        drawStaticText = (void(*)(StaticText&,float,float,float,float,float,float,float))engineFunctions[28];
-        getEngineShader = (const Shader& (*)(AG_SHADER))engineFunctions[29];
-        createDynamicText = (DynamicText(*)(Font&,unsigned int))engineFunctions[30];
-        setDynamicTextContents = (void(*)(DynamicText&,const char*))engineFunctions[31];
-        drawDynamicText = (void(*)(DynamicText&,float,float,float,float,float,float,float))engineFunctions[32];
+        // Initialize function pointers using the array
+        getKeyDown = (GetKeyDownFunc)functionArray[0];
+        updateWindow = (UpdateWindowFunc)functionArray[1];
+        clearFrameBuffer = (ClearFrameBufferFunc)functionArray[2];
+        drawGeometry = (DrawGeometryFunc)functionArray[3];
+        createGeometry = (CreateGeometryFunc)functionArray[4];
+        getTime = (GetTimeFunc)functionArray[5];
+        updateGeometry = (UpdateGeometryFunc)functionArray[6];
+        useShader = (UseShaderFunc)functionArray[7];
+        createShader = (CreateShaderFunc)functionArray[8];
+        loadFont = (LoadFontFunc)functionArray[9];
+        loadSharedFont = (LoadSharedFontFunc)functionArray[10];
+        destroyFont = (DestroyFontFunc)functionArray[11];
+        getCursorPosition = (GetCursorPositionFunc)functionArray[12];
+        createBasicGrid = (CreateBasicGridFunc)functionArray[13];
+        drawBasicGrid = (DrawBasicGridFunc)functionArray[14];
+        createTexture = (CreateTextureFunc)functionArray[15];
+        destroyTexture = (DestroyTextureFunc)functionArray[16];
+        loadImage = (LoadImageFunc)functionArray[17];
+        destroyImage = (DestroyImageFunc)functionArray[18];
+        bindMat4 = (BindMat4Func)functionArray[19];
+        bindVec2 = (BindVec2Func)functionArray[20];
+        bindTexture = (BindTextureFunc)functionArray[21];
+        bindFloat = (BindFloatFunc)functionArray[22];
+        createStaticText = (CreateStaticTextFunc)functionArray[23];
+        drawStaticText = (DrawStaticTextFunc)functionArray[24];
+        getEngineShader = (GetEngineShaderFunc)functionArray[25];
+        createDynamicText = (CreateDynamicTextFunc)functionArray[26];
+        setDynamicTextContents = (SetDynamicTextContentsFunc)functionArray[27];
+        drawDynamicText = (DrawDynamicTextFunc)functionArray[28];
+        destroyGeometry = (DestroyGeeometryFunc)functionArray[29];
+        destroyShader = (DestroyShaderFunc)functionArray[30];
+        destroyStaticText = (DestroyStaticText)functionArray[31];
+        destroyDynamicText = (DestroyDynamicText)functionArray[32];
+        destroyBasicGrid = (DestroyBasicGridFunc)functionArray[33];
 
-        dllMain(win);
+        //Run the game function defined in the dll code
+        dllMain(win);;
     }
 }
+
 #endif
+
 #ifdef AG_LAUNCHER
+
 #include <windows.h>
 
 
-bool runGameDLL(Window& win, const char* path)
-{
-    HINSTANCE dll;
-    void(*entry)(Window&,void(**)());
 
-    dll = LoadLibraryA(path);
+// Define an array of VoidFunc pointers
+VoidFunc fun[] =
+{
+    (VoidFunc)getKeyDown,
+    (VoidFunc)updateWindow,
+    (VoidFunc)clearFrameBuffer,
+    (VoidFunc)drawGeometry,
+    (VoidFunc)createGeometry,
+    (VoidFunc)getTime,
+    (VoidFunc)updateGeometry,
+    (VoidFunc)useShader,
+    (VoidFunc)createShader,
+    (VoidFunc)loadFont,
+    (VoidFunc)loadSharedFont,
+    (VoidFunc)destroyFont,
+    (VoidFunc)getCursorPosition,
+    (VoidFunc)createBasicGrid,
+    (VoidFunc)drawBasicGrid,
+    (VoidFunc)createTexture,
+    (VoidFunc)destroyTexture,
+    (VoidFunc)loadImage,
+    (VoidFunc)destroyImage,
+    (VoidFunc)bindMat4,
+    (VoidFunc)bindVec2,
+    (VoidFunc)bindTexture,
+    (VoidFunc)bindFloat,
+    (VoidFunc)createStaticText,
+    (VoidFunc)drawStaticText,
+    (VoidFunc)getEngineShader,
+    (VoidFunc)createDynamicText,
+    (VoidFunc)setDynamicTextContents,
+    (VoidFunc)drawDynamicText,
+    (VoidFunc)destroyGeometry,
+    (VoidFunc)destroyShader,
+    (VoidFunc)destroyStaticText,
+    (VoidFunc)destroyDynamicText,
+    (VoidFunc)destroyBasicGrid
+
+};
+
+bool runGameDLL(Window& win, const char* path, HINSTANCE dll)
+{
+    void (*entry)(Window&, VoidFunc*);
+
+    if(dll == NULL)
+        dll = LoadLibraryA(path);
 
     if (dll == NULL)
         return false;
 
-    entry = (void(*)(Window&, void(**)())) GetProcAddress(dll, "runGame");
+    entry = (void(*)(Window&, VoidFunc*))GetProcAddress(dll, "runGame");
 
     if (entry == NULL)
+    {
+        FreeLibrary(dll);
         return false;
-
-    void(*fun[])() 
-    { 
-        (void(*)()) getKeyDown,
-        (void(*)()) updateWindow,
-        clearFrameBuffer,
-        (void(*)()) drawGeometry,
-        (void(*)()) createGeometry,
-        (void(*)()) getTime,
-        (void(*)()) updateGeometry,
-        (void(*)()) useShader,
-        (void(*)()) createShader,
-        (void(*)()) createTextBox,
-        (void(*)()) loadFont,
-        (void(*)()) loadSharedFont,
-        (void(*)()) drawTextBox,
-        (void(*)()) destroyBitmapFont,
-        (void(*)()) getCursorPosition,
-        (void(*)()) createRect,
-        (void(*)()) drawRect,
-        (void(*)()) createBasicGrid,
-        (void(*)()) drawBasicGrid,
-        (void(*)()) createTexture,
-        (void(*)()) destroyTexture,
-        (void(*)()) loadImage,
-        (void(*)()) destroyImage,
-        (void(*)()) bindMat4,
-        (void(*)()) bindVec2,
-        (void(*)()) bindTexture,
-        (void(*)()) bindFloat,
-        (void(*)()) createStaticText,
-        (void(*)()) drawStaticText,
-        (void(*)()) getEngineShader,
-        (void(*)()) createDynamicText,
-        (void(*)()) setDynamicTextContents,
-        (void(*)()) drawDynamicText
-    };
+    }
 
     entry(win, fun);
 
-    FreeLibrary(dll);
     return true;
 }
 
 #endif
+
+// ... (rest of the code)
 
 #endif

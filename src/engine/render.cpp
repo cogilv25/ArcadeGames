@@ -1,4 +1,5 @@
 #include "render.h"
+#include "platform.h"
 #include "glad/glad.h"
 #include "utilities.h"
 #include <memory>
@@ -6,7 +7,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-extern std::shared_ptr<char> loadFileAsCharArray(const char* path);
 unsigned int currentShader = 0;
 
 
@@ -14,11 +14,8 @@ Shader createShader(const char* vsPath, const char* fsPath)
 {
 	Shader s {0, true};
 	
-	// Get rid of this awful shared pointer stuff!
 	auto vertexShaderSource = loadFileAsCharArray(vsPath);
 	auto fragmentShaderSource = loadFileAsCharArray(fsPath);
-	auto vertexShaderSourcePointer = vertexShaderSource.get();
-	auto fragmentShaderSourcePointer = fragmentShaderSource.get();
 
 	if (vertexShaderSource == 0 || fragmentShaderSource == 0)
 	{
@@ -31,7 +28,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
 	char info[512];
 
 	unsigned int vert = glCreateShader(GL_VERTEX_SHADER), frag = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(vert, 1, &vertexShaderSourcePointer, 0);
+	glShaderSource(vert, 1, &vertexShaderSource, 0);
 	glCompileShader(vert);
 
 	glGetShaderiv(vert, GL_COMPILE_STATUS, &result);
@@ -42,7 +39,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
 		s.valid = false;
 	}
 
-	glShaderSource(frag, 1, &fragmentShaderSourcePointer, 0);
+	glShaderSource(frag, 1, &fragmentShaderSource, 0);
 	glCompileShader(frag);
 
 	glGetShaderiv(frag, GL_COMPILE_STATUS, &result);
@@ -70,7 +67,14 @@ Shader createShader(const char* vsPath, const char* fsPath)
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);
+	free(vertexShaderSource);
+	free(fragmentShaderSource);
     return s;
+}
+
+void destroyShader(Shader& s)
+{
+	GL(glDeleteProgram(s.ID));
 }
 
 void useShader(const Shader& s)
@@ -119,6 +123,40 @@ void destroyTexture(unsigned int ID)
 	glDeleteTextures(1, &ID);
 }
 
+StaticGeometry createStaticGeometry(float* vertices, unsigned int* indices, unsigned int* compPerLoc, unsigned int vertexCount, unsigned int indexCount, unsigned int locCount, unsigned int stride)
+{
+	StaticGeometry geom{ 0, indexCount};
+	unsigned int vbo, ibo;
+
+	//Create Vertex Array, Vertex Buffer and Index Buffer
+	GL(glGenVertexArrays(1, &geom.vao));
+	GL(glBindVertexArray(geom.vao));
+
+	GL(glGenBuffers(1, &vbo));
+	GL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GL(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * stride * vertexCount, vertices, GL_DYNAMIC_DRAW));
+
+	unsigned int offset = 0;
+	for (int i = 0; i < locCount; i++)
+	{
+		GL(glVertexAttribPointer(i, compPerLoc[i], GL_FLOAT, GL_FALSE, sizeof(float) * stride, (void*)(sizeof(float) * offset)));
+		GL(glEnableVertexAttribArray(i));
+		offset += compPerLoc[i];
+	}
+
+	GL(glGenBuffers(1, &ibo));
+	GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+	GL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indexCount, indices, GL_DYNAMIC_DRAW));
+
+	return geom;
+}
+
+void drawStaticGeometry(StaticGeometry& geom)
+{
+	GL(glBindVertexArray(geom.vao));
+	GL(glDrawElements(GL_TRIANGLES, geom.indexCount * 6, GL_UNSIGNED_INT, (void*)0));
+}
+
 Geometry createGeometry(float* vertices, unsigned int * indices, unsigned int * compPerLoc, unsigned int vertexCount, unsigned int indexCount, unsigned int locCount, unsigned int stride)
 {
 	Geometry geom{ 0, 0, 0, vertices, indices, vertexCount, indexCount, stride };
@@ -158,70 +196,19 @@ void updateGeometry(Geometry& geom)
 	GL(glBufferSubData(GL_ARRAY_BUFFER, 0, geom.vertexCount * geom.stride * sizeof(float), geom.vertices));
 }
 
-Rect createRect(float w, float h, float r, float g, float b)
+void destroyGeometry(Geometry& geom)
 {
-	Rect rect{ 0, 0, 0 };
-	BasicVertex* p = (BasicVertex*)rect.vertices;
+	GL(glDeleteBuffers(1, &geom.ibo));
+	GL(glDeleteBuffers(1, &geom.vbo));
 
-	//Top-Right
-	p->x = w; p->y = h;
-	p->r = r; p->g = g; p->b = b;
-	p++;
-
-	//Top-Left
-	p->x = 0.0f; p->y = h;
-	p->r = r; p->g = g; p->b = b;
-	p++;
-
-	//Bottom-Left
-	p->x = 0.0f; p->y = 0.0f;
-	p->r = r; p->g = g; p->b = b;
-	p++;
-
-	//Bottom-Right
-	p->x = w; p->y = 0.0f;
-	p->r = r; p->g = g; p->b = b;
-
-	rect.indices[0] = 0;
-	rect.indices[1] = 1;
-	rect.indices[2] = 2;
-	rect.indices[3] = 2;
-	rect.indices[4] = 3;
-	rect.indices[5] = 0;
-
-
-	//Create Vertex Array, Vertex Buffer and Index Buffer
-	GL(glGenVertexArrays(1, &rect.vao));
-	GL(glBindVertexArray(rect.vao));
-
-	GL(glGenBuffers(1, &rect.vbo));
-	GL(glBindBuffer(GL_ARRAY_BUFFER, rect.vbo));
-	GL(glBufferData(GL_ARRAY_BUFFER, sizeof(BasicVertex) * 4, rect.vertices, GL_DYNAMIC_DRAW));
-
-	
-	GL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(BasicVertex), (void*)0));
-	GL(glEnableVertexAttribArray(0));
-	GL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(BasicVertex), (void*)(sizeof(float)*2)));
-	GL(glEnableVertexAttribArray(1));
-
-	GL(glGenBuffers(1, &rect.ibo));
-	GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ibo));
-	GL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, rect.indices, GL_DYNAMIC_DRAW));
-
-	return rect;
-}
-
-void drawRect(Rect& r, float x, float y)
-{
-	GL(glBindVertexArray(r.vao));
-	GL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0));
+	GL(glDeleteVertexArrays(1, &geom.vao));
 }
 
 BasicGrid createBasicGrid(float w, float h, unsigned int xC, unsigned int yC, float xS, float yS, float* c, unsigned int cC)
 {
 	BasicGrid grid{ w,h,xC,yC,xS,yS,c,cC };
 
-	BasicVertex* vertices = new BasicVertex[xC * yC * 4];
+	BasicVertex* vertices =  (BasicVertex*)malloc(sizeof(BasicVertex)* xC * yC * 4);
 
 	//Ekk
 	float tileWidth = (w-xS) / (float)xC;
@@ -278,6 +265,13 @@ void drawBasicGrid(BasicGrid& grid, float x, float y, float z)
 	GL(glUniform3f(loc, x, y, z));
 
 	drawGeometry(grid.geom);
+}
+
+void destroyBasicGrid(BasicGrid& grid)
+{
+	free(grid.geom.vertices);
+	free(grid.geom.indices);
+	destroyGeometry(grid.geom);
 }
 
 void bindMat4(unsigned int shaderID, const char* name, float* mat)

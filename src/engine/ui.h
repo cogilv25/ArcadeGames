@@ -48,6 +48,9 @@ struct TextVertex
 struct StaticText
 {
 	unsigned int vao;
+    unsigned int vbo;
+    unsigned int ibo;
+
 	unsigned int length;
 	Font* font;
 };
@@ -66,17 +69,18 @@ struct DynamicText
 
 Font loadFont(const char* path);
 Font& loadSharedFont(const char* name, const char* path);
-void destroyBitmapFont(Font&);
+void destroyFont(Font&);
 
 StaticText createStaticText(const char* text, Font&);
 DynamicText createDynamicText(Font&, unsigned int maxCharacters);
-TextBox createTextBox(const char* text, float scale, Font&, float r, float g, float b);
-
-void setDynamicTextContents(DynamicText& dt, const char* contents);
 
 void drawStaticText(StaticText& text, float x, float y, float z, float r, float g, float b, float a);
 void drawDynamicText(DynamicText& text, float x, float y, float z, float r, float g, float b, float a);
-void drawTextBox(TextBox& box, float x, float y);
+
+void setDynamicTextContents(DynamicText& dt, const char* contents);
+
+void destroyStaticText(StaticText&);
+void destroyDynamicText(DynamicText&);
 
 #endif
 #endif

@@ -28,7 +28,7 @@ DanceFloor createDanceFloor(unsigned int width, unsigned int height, double peri
 	DanceFloor df{ width, height, period, 0 };
 
 
-	BasicVertex* vertices  = new BasicVertex[width * height * 4];
+	BasicVertex* vertices  = (BasicVertex*)malloc(width * height * 4 * sizeof(BasicVertex));
 
 	//Ekk
 	float tileWidth = 2.0f / (float)width;
@@ -58,7 +58,7 @@ DanceFloor createDanceFloor(unsigned int width, unsigned int height, double peri
 		}
 	}
 
-	unsigned int* indices_data = new unsigned int[width * height * 6];
+	unsigned int* indices_data = (unsigned int*)malloc(width * height * 6 * sizeof(unsigned int));
 
 	int offset = 0;
 	for (int i = 0; i < width * height * 4; i += 4)
@@ -81,8 +81,9 @@ DanceFloor createDanceFloor(unsigned int width, unsigned int height, double peri
 
 void destroyDanceFloor(DanceFloor& df)
 {
-	delete[] df.geom.vertices;
-	delete[] df.geom.indices;
+	free(df.geom.vertices);
+	free(df.geom.indices);
+	destroyGeometry(df.geom);
 }
 
 void updateDanceFloor(DanceFloor& df)
@@ -116,7 +117,7 @@ void dllMain(Window& win)
 	Shader basicShader = createShader("src/shaders/basic.vs", "src/shaders/basic.fs");
 	const Shader& textShader = getEngineShader(TEXT);
 
-	Font font = loadSharedFont("Spectral", "assets/Spectral.ttf");
+	Font font = loadFont("assets/Spectral.ttf");
 	if (!font.valid)
 		std::cerr << "Could not load font @ assets/Spectral.ttf\n";
 
@@ -142,5 +143,7 @@ void dllMain(Window& win)
 	}
 
 	destroyDanceFloor(floor);
-	destroyBitmapFont(font);
+	destroyStaticText(tb);
+	destroyFont(font);
+	destroyShader(basicShader);
 }

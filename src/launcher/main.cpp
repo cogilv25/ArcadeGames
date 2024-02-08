@@ -1,58 +1,113 @@
-#include <iostream>
 #define AG_LAUNCHER
 #include "binary_interface.h"
 #include "utilities.h"
 #include <filesystem>
 #include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <windows.h>
+
+#define MAX_GAMES 64
+
+HINSTANCE loadedGames[MAX_GAMES] { 0 };
+
+void freeGameDlls()
+{
+    for (int i = 0; i < MAX_GAMES; ++i)
+    {
+        if (loadedGames[i] == NULL)
+            continue;
+        FreeLibrary(loadedGames[i]);
+    }
+}
+
+struct _GameInfo
+{
+    char path[MAX_PATH];
+    char name[128];
+} typedef GameInfo;
 
 struct GameList
 {
-    char* paths[64];
-    char* names[64];
+    GameInfo * games;
     unsigned int count;
 };
 
 GameList initGameList()
 {
-#if defined(_DEBUG) or defined(__DEBUG)
-    const char* path = "bin/Debug/games/";
+    const char* path =
+#if defined(_DEBUG) || defined(__DEBUG)
+        "bin/Debug/games/";
 #elif defined(_RELEASE)
-    const char* path = "bin/Release/games/";
+        "bin/Release/games/";
 #elif defined(_PRODUCTION)
-    const char* path = "games/";
+        "games/";
 #endif
 
-    GameList games{ 0 };
+    struct GameList games { (GameInfo*)calloc(MAX_GAMES, sizeof(GameInfo)), 0 };
 
-    IFDBG(std::cout << "Enumerating Games..\n");
+    WIN32_FIND_DATAA findFileData;
+    char searchPath[MAX_PATH];
+    sprintf(searchPath, "%s*.dll", path);
 
-    unsigned int* n = &games.count;
-    for (auto const& dir_entry : std::filesystem::directory_iterator{ path })
+    HANDLE hFind = FindFirstFileA(searchPath, &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE)
     {
-        //Extract Name 
-        std::string gamePath = dir_entry.path().string().c_str();
-        unsigned int pathLength = gamePath.length();
-        unsigned int startIndex = gamePath.find_last_of('/') + 1;
-        unsigned int nameLength = pathLength - startIndex - 4;
+        printf("Error opening directory: %s\n", path);
+        return games;
+    }
 
-        games.paths[*n] = (char*)malloc(pathLength + 1);
-        games.names[*n] = (char*)malloc(nameLength + 1);
-        games.names[*n][nameLength] = 0; games.paths[*n][pathLength] = 0;
+    printf("Loading game dlls from: %s\n", path);
 
-        memcpy(games.paths[*n], gamePath.c_str(), pathLength);
-        memcpy(games.names[*n], gamePath.c_str() + startIndex, nameLength);
-
-        IFDBG(std::cout << games.names[*n] << ": " << games.paths[*n] << "\n");
-        ++(*n);
-        if (*n > 63)
+    do
+    {
+        if (games.count >= MAX_GAMES)
         {
-            std::cerr << "\nToo many games for internal buffer, max supported = 64\n";
+            fprintf(stderr, "Too many games for internal buffer, max supported = %d\n", MAX_GAMES);
             break;
         }
-    }
-    IFDBG(std::cout << "Done.\n");
+
+        // Skip directories
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        char* gamePath = games.games[games.count].path;
+        char* gameName = games.games[games.count].name;
+
+        sprintf(gamePath, "%s%s", path, findFileData.cFileName);
+
+        const char* fileName = strrchr(gamePath, '\\');
+        if (fileName++ == NULL)
+            fileName = strrchr(gamePath, '/') + 1;
+
+        size_t count = strlen(fileName) - 4;
+        
+        if (count > 127)
+        {
+            fprintf(stderr, "Game name too long (max 127 characters): %s\n", fileName);
+            continue;
+        }
+        strncpy(gameName, fileName, count);
+
+        printf("%s: %s\n", gameName, gamePath);
+
+        games.count++;
+    } while (FindNextFileA(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+
+    printf("Done.\n\n");
+
     return games;
 }
+
+void destroyGameList(GameList& list)
+{
+    free(list.games);
+}
+
 
 int main()
 {
@@ -67,11 +122,11 @@ int main()
 
     StaticText titleText = createStaticText("Choose a game to play from the list:", font);
 
-    GameList games = initGameList();
-    StaticText* gameTexts = (StaticText*)malloc(sizeof(StaticText) * games.count);
-    for(int i = 0; i < games.count; ++i)
+    GameList list = initGameList();
+    StaticText* gameTexts = (StaticText*)malloc(sizeof(StaticText) * list.count);
+    for(int i = 0; i < list.count; ++i)
     {
-        gameTexts[i] = createStaticText(games.names[i], font);
+        gameTexts[i] = createStaticText(list.games[i].name, font);
     }
 
     bool clicking = false;
@@ -88,7 +143,7 @@ int main()
         useShader(textShader);
         float yoff = 0.725f, ygap = -0.133f;
 
-        for (int i = 0; i < games.count; ++i)
+        for (int i = 0; i < list.count; ++i)
             drawStaticText(gameTexts[i], -0.99f, yoff + ygap * i, 0.0f, 1.0f, 1.0f, 1.0f, (i+1==selectedGame)?1.0f:0.75f);
 
         
@@ -111,7 +166,7 @@ int main()
             clicking = false;
             if (selectedGame != 0)
             {
-                runGameDLL(win, games.paths[selectedGame - 1]);
+                runGameDLL(win, list.games[selectedGame - 1].path, loadedGames[selectedGame - 1]);
                 win.shouldClose = false;
                 ignoreEscape = true;
             }
@@ -122,5 +177,7 @@ int main()
 
     }
 
+    destroyGameList(list);
+    freeGameDlls();
 	return 0;
 }

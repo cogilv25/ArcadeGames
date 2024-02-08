@@ -4,6 +4,9 @@
 #include <iostream>
 
 #define LEVELS 5
+#define MAX_LEVELS 99
+#define MAX_TIME 600
+#define MAX_STEPS 999
 
 char* mapName;
 char* levelText;
@@ -19,14 +22,15 @@ double levelTime;
 
 bool highscoresVisible = false;
 double hsTimes[LEVELS] { 1.843, 5.820, 4.025, 33.019, 40.428 };
-unsigned int hsSteps[LEVELS] { 15, 31, 23, 151, 175 };
+unsigned int hsSteps[LEVELS] { 15, 31, 23, 149, 175 };
 unsigned int highscoresAchieved = 0;
 DynamicText hsTimesTextBoxes[LEVELS];
 DynamicText hsStepsTextBoxes[LEVELS];
 DynamicText hsLevelsTextBoxes[LEVELS];
-char* hsLevelsText[LEVELS] { "1", "2", "3", "4", "5" };
-char* hsTimesText[LEVELS] { (char*)malloc(9), (char*)malloc(9), (char*)malloc(9), (char*)malloc(9), (char*)malloc(9)};
-char* hsStepsText[LEVELS] { (char*)malloc(4), (char*)malloc(4), (char*)malloc(4), (char*)malloc(4), (char*)malloc(4) };
+
+char* dynamicText2;
+char* hsTextFields[3][LEVELS];
+
 float hsTableXPositions[] { -0.95f, -0.6437f, -0.367f };
 float hsTableYPositions[]{ -0.45f, -0.57f, -0.69f, -0.81f, -0.93f };
 float hsColours[][3]{
@@ -340,22 +344,28 @@ TexturedQuad createTexturedQuad(float width, float height, float s0, float s1, f
 	return quad;
 }
 
+void destroyTexturedQuad(TexturedQuad& quad)
+{
+	free(quad.geom.vertices);
+	free(quad.geom.indices);
+}
+
 TextureGrid createTextureGrid(float width, float height, unsigned int xCells, unsigned int yCells, float xGap, float yGap)
 {
 	BTVertex* vertices = (BTVertex*)malloc(xCells * yCells * 4 * sizeof(BTVertex));
 
-	float tileWidth = (width - xGap) / (float)xCells;
-	float tileHeight = (height - yGap) / (float)yCells;
-	float hxG = xGap / 2.0f, hyG = yGap / 2.0f;
-	for (int i = 0; i < xCells; i++)
+	unsigned int tileWidth = width / (float)xCells;
+	unsigned int tileHeight = height / (float)yCells;
+
+	for (int j = 0; j < yCells; j++)
 	{
-		for (int j = 0; j < yCells; j++)
+		for (int i = 0; i < xCells; i++)
 		{
 
-			float x = (i * tileWidth - 1.0f);
-			float y = (j * tileHeight - 1.0f);
-			int m = j * xCells + i;
-			int n = m * 4;
+			unsigned int x = i * tileWidth;
+			unsigned int y = j * tileHeight;
+
+			int n = (j * xCells + i) * 4;
 
 			vertices[n].x = x; vertices[n].y = y;
 			vertices[n].s = valueToUVMap[0].t1; vertices[n].t = valueToUVMap[0].s1;
@@ -392,6 +402,13 @@ TextureGrid createTextureGrid(float width, float height, unsigned int xCells, un
 	return out;
 }
 
+void destroyTextureGrid(TextureGrid& grid)
+{
+	free(grid.grid);
+	free(grid.geom.vertices);
+	free(grid.geom.indices);
+}
+
 void updateHighScore(unsigned int level, double time, unsigned int steps)
 {
 	bool newTime = hsTimes[level] > time;
@@ -402,15 +419,15 @@ void updateHighScore(unsigned int level, double time, unsigned int steps)
 	if (newTime)
 	{
 		hsTimes[level] = time;
-		sprintf(hsTimesText[level], "%.3fs", time);
-		setDynamicTextContents(hsTimesTextBoxes[level], hsTimesText[level]);
+		sprintf(hsTextFields[2][level], "%.3fs", hsTimes[level]);
+		setDynamicTextContents(hsTimesTextBoxes[level], hsTextFields[2][level]);
 		hsTableColours[2][level] = 1;
 	}
 	if (newSteps)
 	{
 		hsSteps[level] = steps;
-		sprintf(hsStepsText[level], "%d", steps);
-		setDynamicTextContents(hsStepsTextBoxes[level], hsStepsText[level]);
+		sprintf(hsTextFields[1][level], "%d", hsSteps[level]);
+		setDynamicTextContents(hsStepsTextBoxes[level], hsTextFields[1][level]);
 		hsTableColours[1][level] = 1;
 	}
 
@@ -630,7 +647,6 @@ void dllMain(Window& win)
 
 	Shader basic = createShader("src/games/sokoban/shaders/basic.vs", "src/games/sokoban/shaders/basic.fs");
 	Shader sokobanShader = createShader("src/games/sokoban/shaders/main.vs", "src/games/sokoban/shaders/main.fs");
-	Shader textShader = createShader("src/shaders/text.vs", "src/shaders/text.fs");
 	const Shader& textShader2 = getEngineShader(TEXT);
 
 	Font font = loadFont("D:/AG/assets/Spectral.ttf");
@@ -650,27 +666,6 @@ void dllMain(Window& win)
 	stepsTextBox = createDynamicText(font, 12);
 	setDynamicTextContents(stepsTextBox, "Steps: 0");
 
-	for (int i = 0; i < LEVELS; ++i)
-	{
-		hsLevelsTextBoxes[i] = createDynamicText(font, 2);
-		setDynamicTextContents(hsLevelsTextBoxes[i], hsLevelsText[i]);
-
-		hsStepsTextBoxes[i] = createDynamicText(font, 4);
-		sprintf(hsStepsText[i], "%d", hsSteps[i]);
-		setDynamicTextContents(hsStepsTextBoxes[i], hsStepsText[i]);
-
-		hsTimesTextBoxes[i] = createDynamicText(font, 9);
-		sprintf(hsTimesText[i], "%.3fs", hsTimes[i]);
-		setDynamicTextContents(hsTimesTextBoxes[i], hsTimesText[i]);
-
-		for (int j = 0; j < 3; j++)
-		{
-			hsTimesColours[i * 3 + j] = 1.0f;
-			hsStepsColours[i * 3 + j] = 1.0f;
-		}
-
-	}
-
 
 	float color[] = {1.0f,1.0f,1.0f,0.8f,0.8f,0.8f};
 	BasicGrid floorGrid = createBasicGrid(1944.0f, 1080.0f, 27, 15, 0.0f, 0.0f, color, 2);
@@ -678,31 +673,63 @@ void dllMain(Window& win)
 
 	Image im = loadImage("assets/test.png");
 	unsigned int tex = createTexture(im);
+	destroyImage(im);
 
 	Image menuBGImg = loadImage("assets/menubgtop.png");
 	unsigned int mBGTex = createTexture(menuBGImg);
 	menu1BG = createTexturedQuad(1024.0f, 1024.0f, 1.0f, 0.0f, 1.0f, 0.0f);
 	menu2BG = createTexturedQuad(1024.0f, 1024.0f, 1.0f, 0.0f, 0.0f, 1.0f);
+	destroyImage(menuBGImg);
 
-	mapName = (char*)malloc(32);
+	char* dynamicTextBuffer = (char*)malloc(69);
+
+	mapName = dynamicTextBuffer;
 	memcpy(mapName, "src/games/sokoban/maps/map0.map", 32);
 	Map map = loadMap(mapName);
 
-	levelText = (char*)malloc(9);
+	levelText = mapName + 33;
 	memcpy(levelText, "Level: 1", 9);
 	float levelTextBoxPosition[]{ 0.01f,0.36f };
 
-	timerText = (char*)malloc(15);
+	timerText = levelText + 9;
 	memcpy(timerText, "Time: 0.000s", 13);
 	float timerTextBoxPosition[]{ 0.01f,0.48f };
 
-	stepsText = (char*)malloc(15);
-	memcpy(stepsText, "Steps: 0", 12);
+	stepsText = timerText + 15;
+	memcpy(stepsText, "Steps: 0", 9);
 	float stepsTextBoxPosition[]{ 0.01f,0.6f };
 
 	State state;
 	state.grid = &gameGrid;
 	state.nLevels = 5;
+
+	unsigned int hsLevelMaxChars, hsStepsMaxChars, hsTimesMaxChars;
+	hsLevelMaxChars = log10(MAX_LEVELS) + 2; //Length == (log10(x) + 1) + 1 (for \0 char)
+	hsStepsMaxChars = log10(MAX_STEPS) + 2;  //same as above
+	hsTimesMaxChars = log10(MAX_TIME) + 7;   //same as above + room for ".000s" == +5
+	unsigned int stride = hsLevelMaxChars + hsStepsMaxChars + hsTimesMaxChars;
+	DynamicText* dtTables[3]{ hsLevelsTextBoxes, hsStepsTextBoxes, hsTimesTextBoxes };
+
+	dynamicText2 = (char*)calloc(LEVELS, stride);
+	unsigned int textFieldMaxs[3]{ hsLevelMaxChars, hsStepsMaxChars, hsTimesMaxChars };
+	for (int i = 0; i < LEVELS; ++i)
+	{
+		hsTextFields[0][i] = dynamicText2 + i * stride;
+		for (int j = 1; j < 3; j++)
+			hsTextFields[j][i] = hsTextFields[j-1][i] + textFieldMaxs[j-1];
+
+		sprintf(hsTextFields[0][i], "%d", i);
+		sprintf(hsTextFields[1][i], "%d", hsSteps[i]);
+		sprintf(hsTextFields[2][i], "%.3fs", hsTimes[i]);
+
+		for (int j = 0; j < 3; j++)
+		{
+			dtTables[j][i] = createDynamicText(font, textFieldMaxs[j]);
+			setDynamicTextContents(dtTables[j][i], hsTextFields[j][i]);
+			hsTimesColours[i * 3 + j] = 1.0f;
+			hsStepsColours[i * 3 + j] = 1.0f;
+		}
+	}
 
 	initMapCentred(map, gameGrid, state);
 
@@ -752,19 +779,48 @@ void dllMain(Window& win)
 		drawDynamicText(timerTextBox, -0.98f, 0.52f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
 		drawDynamicText(stepsTextBox, -0.98f, 0.4f, -0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-		DynamicText* dtTables[3]{hsLevelsTextBoxes, hsStepsTextBoxes, hsTimesTextBoxes};
 		for (int i = 0; i < LEVELS; ++i)
 			for (int j = 0; j < 3; j++)
 			{
-				float x = hsTableXPositions[j];
-				float y = hsTableYPositions[i];
-				float r = hsColours[hsTableColours[j][i]][0];
-				float g = hsColours[hsTableColours[j][i]][1];
-				float b = hsColours[hsTableColours[j][i]][2];
-				drawDynamicText(dtTables[j][i], x, y, -0.2f, r, g, b, 1.0f);
+				float x = hsTableXPositions[j], y = hsTableYPositions[i];
+				float* col = hsColours[hsTableColours[j][i]];
+				drawDynamicText(dtTables[j][i], x, y, -0.2f, col[0], col[1], col[2], 1.0f);
 			}
 
 		updateState(win, state);
 		updateWindow(win);
 	}
+
+	for(int i = 0; i < LEVELS; ++i )
+		for(int j = 0; j < 3; ++j)
+			destroyDynamicText(dtTables[j][i]);
+
+	destroyMap(map);
+
+	free(dynamicTextBuffer);
+	free(dynamicText2);
+
+	destroyTexturedQuad(menu1BG);
+	destroyTexturedQuad(menu2BG);
+
+	destroyTexture(mBGTex);
+	destroyTexture(tex);
+
+	destroyTextureGrid(gameGrid);
+	destroyBasicGrid(floorGrid);
+
+	destroyDynamicText(levelTextBox);
+	destroyDynamicText(stepsTextBox);
+	destroyDynamicText(timerTextBox);
+
+	destroyStaticText(titleTextBox);
+	destroyStaticText(highscoresTextBox);
+	destroyStaticText(hsLevelTextBox);
+	destroyStaticText(hsStepsTextBox);
+	destroyStaticText(hsTimeTextBox);
+
+	destroyFont(font);
+
+	destroyShader(sokobanShader);
+	destroyShader(basic);
 }

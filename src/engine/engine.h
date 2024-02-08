@@ -4,14 +4,22 @@
 #include "platform.h"
 #include "ui.h"
 
+
+
 enum AG_SHADER
 {
 	TEXT
 };
 
+enum AG_FONT
+{
+	SPECTRAL
+};
+
 #ifndef AG_GAME_DLL
 
-const Shader& getEngineShader(AG_SHADER shader);
+Shader& getEngineShader(AG_SHADER shader);
+Font& getEngineFont(AG_FONT);
 void initializeEngine(Window&);
 void destroyEngine();
 

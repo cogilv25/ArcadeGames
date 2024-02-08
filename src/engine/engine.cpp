@@ -12,8 +12,10 @@ struct Engine
     int maxTextureSize;
 };
 
+Shader ag_shaders[1];
+Font ag_fonts[1];
+
 Engine engine;
-Shader ag_text_shader;
 unsigned int ag_text_shader_position_location;
 unsigned int ag_text_shader_colour_location;
 
@@ -38,21 +40,33 @@ void initializeEngine(Window& win)
 
     GL(glEnable(GL_CULL_FACE));
     
+    ag_fonts[0] = loadFont("assets/Spectral.ttf");
 
-    GL(ag_text_shader = createShader("src/shaders/text.vs", "src/shaders/text.fs"));
-    GL(glUseProgram(ag_text_shader.ID));
-    GL(ag_text_shader_position_location = glGetUniformLocation(ag_text_shader.ID, "position"));
-    GL(ag_text_shader_colour_location = glGetUniformLocation(ag_text_shader.ID, "colour"));
+    GL(ag_shaders[0] = createShader("src/shaders/text.vs", "src/shaders/text.fs"));
+
+    GL(glUseProgram(ag_shaders[0].ID));
+    GL(ag_text_shader_position_location = glGetUniformLocation(ag_shaders[0].ID, "position"));
+    GL(ag_text_shader_colour_location = glGetUniformLocation(ag_shaders[0].ID, "colour"));
 }
 
-const Shader& getEngineShader(AG_SHADER shader)
+Shader& getEngineShader(AG_SHADER shader)
 {
     switch (shader)
     {
     case TEXT:
-        return ag_text_shader;
+        return ag_shaders[0];
     }
 }
+
+Font& getEngineFont(AG_FONT font)
+{
+    switch (font)
+    {
+    case SPECTRAL:
+        return ag_fonts[0];
+    }
+}
+
 
 void destroyEngine()
 {
