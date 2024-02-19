@@ -47,7 +47,8 @@ project "Engine"
         "lib/glad/include/",
         "lib/glfw/include/",
         "lib/glm/",
-        "lib/imgui/"
+        "lib/imgui/",
+        "lib/stb/"
     }
     
     files
@@ -71,7 +72,6 @@ project "Launcher"
 
     includedirs 
     { 
-        "lib/glm/",
         "src/engine/"
     }
     
@@ -104,6 +104,14 @@ group "Dependencies"
     include "lib/glad.lua"
     include "lib/glm.lua"
 
+-- Gets premake configs for each game
+-- Windows only, we would need to use ls for linux
 group "Games"
-    include "src/games/sokoban.lua"
-    include "src/games/dancefloor.lua"
+local f = io.popen('dir "src/games"')
+for line in f:lines() do
+    local luaFile = string.match(line,".* (.*.lua)")
+    if(luaFile ~= nil) then
+        include("src/games/" .. luaFile)
+    end
+end
+f:close()
