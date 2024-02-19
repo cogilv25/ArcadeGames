@@ -14,7 +14,7 @@ static void frameBufferSizeChanged(GLFWwindow* winRef, int width, int height)
 void createWindow(Window& win)
 {
 	if (!glfwInit())
-		std::cerr << "Fatal Error: GLFW failed to initialise" << std::endl;
+		fprintf(stderr, "Fatal Error: GLFW failed to initialise\n");
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, win.glVersion[0]);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, win.glVersion[1]);
@@ -33,7 +33,7 @@ void createWindow(Window& win)
 	win.glfwRef = glfwCreateWindow(win.width, win.height, win.title, 0, 0);
 	if (win.glfwRef == 0)
 	{
-		std::cerr << "Error creating GLFW window\n";
+		fprintf(stderr, "Error creating GLFW window\n");
 		return;
 	}
 

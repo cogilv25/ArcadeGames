@@ -1,5 +1,5 @@
 #define AG_LAUNCHER
-#include "binary_interface.h"
+#include "ABI.h"
 #include "utilities.h"
 #include <filesystem>
 #include <iostream>
@@ -118,7 +118,7 @@ int main()
 
     Font font = loadSharedFont("Spectral", "assets/Spectral.ttf");
 	if (!font.valid)
-		std::cerr << "Could not load font @ assets/Spectral.ttf\n";
+		fprintf(stderr, "Could not load font @ assets/Spectral.ttf\n");
 
     StaticText titleText = createStaticText("Choose a game to play from the list:", font);
 

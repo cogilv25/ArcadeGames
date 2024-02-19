@@ -1,5 +1,4 @@
-#define AG_GAME_DLL
-#include "binary_interface.h"
+#include "Sokoban.h"
 #include <memory>
 #include <iostream>
 
@@ -55,35 +54,6 @@ float screenSpaceMatrix[]
 	0.0f,0.0f,0.0f,1.0f
 };
 
-struct TexturedQuad
-{
-	float x, y;
-	Geometry geom;
-};
-
-
-TexturedQuad menu1BG;
-TexturedQuad menu2BG;
-
-struct UVQuad
-{
-	float s0, s1, t0, t1;
-};
-
-struct BTVertex
-{
-	float x, y, s, t;
-};
-
-struct TextureGrid
-{
-	Geometry geom;
-	unsigned char* grid;
-	unsigned int width;
-	unsigned int height;
-	bool modified = false;
-};
-
 UVQuad valueToUVMap[]
 {
 	{ 0.0f, 0.25f, 0.0f, 0.25f },
@@ -94,97 +64,9 @@ UVQuad valueToUVMap[]
 	{ 0.5f, 1.0f, 0.5f, 0.75f },
 	{ 0.0f, 0.5f, 0.75f, 1.0f }
 };
+TexturedQuad menu1BG;
+TexturedQuad menu2BG;
 
-struct Map
-{
-	bool valid;
-	unsigned int xOff, yOff, width, height;
-	unsigned int nObjectives;
-	unsigned char* data;
-};
-
-struct State
-{
-	unsigned int nLevels = 0;
-	unsigned int level = 0;
-
-	bool levelStarted = false;
-	bool levelComplete = false;
-	bool pauseInput = false;
-	unsigned int lastKey = 0;
-	double time = 0, timer = 0, period = 0.2;
-	unsigned int playerX = 0, playerY = 0;
-	unsigned int nObj, completedObj;
-	TextureGrid* grid = 0;
-	Map* map = 0;
-};
-
-Map loadMap(const char* path)
-{
-	FILE* file = fopen(path,"rb");
-	if (file == NULL)
-	{
-		std::cerr << "Unable to load map file\n";
-		return Map{ false };
-	}
-
-	Map map{ true };
-	if (fscanf(file, "%d,%d", &map.width, &map.height) != 2)
-	{
-		std::cerr << "Invalid map header\n";
-		fclose(file);
-		return Map{ false };
-	}
-
-	map.data = (unsigned char*)malloc(map.width * map.height);
-	char c = 0;
-	int n = 0;
-	while (c >= 0)
-	{
-		c = fgetc(file);
-		if ( c !=32 && (c < 65 || c > 90))
-			continue;
-
-		if (n >= map.width * map.height)
-			break;
-
-		switch (c)
-		{
-		case 'P':
-			map.data[n] = 1;
-			break;
-		case 'D':
-			map.data[n] = 2;
-			++map.nObjectives;
-			break;
-		case 'C':
-			map.data[n] = 3;
-			break;
-		case 'W':
-			map.data[n] = 4;
-			break;
-		default:
-			map.data[n] = 0;
-			break;
-		}
-		++n;
-	}
-
-	fclose(file);
-
-	if (n != map.width * map.height)
-	{
-		std::cerr << "Map dimensions incorrect, continuing..\n";
-		map.valid = false;
-	}
-
-	return map;
-}
-
-void destroyMap(Map& map)
-{
-	free(map.data);
-}
 
 unsigned char getTextureGridValue(TextureGrid& grid, unsigned int x, unsigned int y)
 {
@@ -248,23 +130,23 @@ bool initMap(Map& map, TextureGrid& grid, State& state)
 {
 	if (map.width > grid.width)
 	{
-		std::cerr << "Map is too wide!\n";
+		fprintf(stderr, "Map is too wide!\n");
 		return false;
 	}
 	else if (map.width + map.xOff > grid.width)
 	{
-		std::cerr << "Map is off screen, adjusting and continuing..\n";
+		fprintf(stderr, "Map is off screen, adjusting and continuing..\n");
 		map.xOff = grid.width - map.width;
 	}
 
 	if (map.height > grid.width)
 	{
-		std::cerr << "Map is too tall!\n";
+		fprintf(stderr, "Map is too tall!\n");
 		return false;
 	}
 	else if (map.height + map.yOff > grid.height)
 	{
-		std::cerr << "Map is off screen, adjusting and continuing..\n";
+		fprintf(stderr, "Map is off screen, adjusting and continuing..\n");
 		map.yOff = grid.height - map.height;
 	}
 
@@ -276,13 +158,13 @@ bool initMapCentred(Map& map, TextureGrid& grid, State& state)
 {
 	if (map.width > grid.width)
 	{
-		std::cerr << "Map is too wide!\n";
+		fprintf(stderr, "Map is too wide!\n");
 		return false;
 	}
 
 	if (map.height > grid.width)
 	{
-		std::cerr << "Map is too tall!\n";
+		fprintf(stderr, "Map is too tall!\n");
 		return false;
 	}
 
@@ -305,81 +187,42 @@ void updateTextureGrid(TextureGrid& grid)
 	grid.modified = false;
 }
 
-TexturedQuad createTexturedQuad(float width, float height, float s0, float s1, float t0, float t1)
-{
-	TexturedQuad quad{ 0 };
-	BTVertex* vertices = (BTVertex*)malloc(sizeof(BTVertex) * 4);
-	unsigned int* indices = (unsigned int*)malloc(sizeof(unsigned int) * 6);
-	BTVertex* p = (BTVertex*)vertices;
-
-	//Top-Right
-	p->x = width; p->y = height;
-	p->s = s0; p->t = t1;
-	p++;
-
-	//Top-Left
-	p->x = 0.0f; p->y = height;
-	p->s = s1; p->t = t1;
-	p++;
-
-	//Bottom-Left
-	p->x = 0.0f; p->y = 0.0f;
-	p->s = s1; p->t = t0;
-	p++;
-
-	//Bottom-Right
-	p->x = width; p->y = 0.0f;
-	p->s = s0; p->t = t0;
-
-	indices[0] = 0;
-	indices[1] = 1;
-	indices[2] = 2;
-	indices[3] = 2;
-	indices[4] = 3;
-	indices[5] = 0;
-
-	unsigned int cPL[]{ 2,2 };
-	quad.geom = createGeometry((float*)vertices, indices, cPL, 4, 6, 2, 4);
-
-	return quad;
-}
-
-void destroyTexturedQuad(TexturedQuad& quad)
-{
-	free(quad.geom.vertices);
-	free(quad.geom.indices);
-}
 
 TextureGrid createTextureGrid(float width, float height, unsigned int xCells, unsigned int yCells, float xGap, float yGap)
 {
-	BTVertex* vertices = (BTVertex*)malloc(xCells * yCells * 4 * sizeof(BTVertex));
-
 	unsigned int tileWidth = width / (float)xCells;
 	unsigned int tileHeight = height / (float)yCells;
 
+	//Create a concatenated list of all x points then all y points
+	float* xPoints = (float*)malloc((xCells + 1) + (yCells + 1) * sizeof(float));
+	float* yPoints = xPoints + xCells + 1;
+
+	for (int i = 0; i < xCells + 1; ++i)
+		xPoints[i] = tileWidth * i;
+	
+	for(int j = 0; j < yCells + 1; ++j)
+		yPoints[j] = tileHeight * j;
+
+	BTVertex* vertices = (BTVertex*)malloc(xCells * yCells * 4 * sizeof(BTVertex));
+
+
 	for (int j = 0; j < yCells; j++)
-	{
 		for (int i = 0; i < xCells; i++)
 		{
-
-			unsigned int x = i * tileWidth;
-			unsigned int y = j * tileHeight;
-
 			int n = (j * xCells + i) * 4;
 
-			vertices[n].x = x; vertices[n].y = y;
+			vertices[n].x = xPoints[i]; vertices[n].y = yPoints[j];
 			vertices[n].s = valueToUVMap[0].t1; vertices[n].t = valueToUVMap[0].s1;
 
-			vertices[n + 1].x = x + tileWidth; vertices[n + 1].y = y;
+			vertices[n + 1].x = xPoints[i + 1]; vertices[n + 1].y = yPoints[j];
 			vertices[n + 1].s = valueToUVMap[0].t0; vertices[n + 1].t = valueToUVMap[0].s0;
 
-			vertices[n + 2].x = x + tileWidth; vertices[n + 2].y = y + tileHeight;
+			vertices[n + 2].x = xPoints[i + 1]; vertices[n + 2].y = yPoints[j + 1];
 			vertices[n + 2].s = valueToUVMap[0].t0; vertices[n + 2].t = valueToUVMap[0].s0;
 
-			vertices[n + 3].x = x; vertices[n + 3].y = y + tileHeight;
+			vertices[n + 3].x = xPoints[i]; vertices[n + 3].y = yPoints[j + 1];
 			vertices[n + 3].s = valueToUVMap[0].t1; vertices[n + 3].t = valueToUVMap[0].s0;
 		}
-	}
 
 	unsigned int* indices_data = (unsigned int*)malloc(xCells * yCells * 6 * sizeof(unsigned int));
 
@@ -398,7 +241,7 @@ TextureGrid createTextureGrid(float width, float height, unsigned int xCells, un
 
 	unsigned int cPL[]{ 2,2 };
 	Geometry geom = createGeometry((float*)vertices, indices_data, cPL, xCells * yCells * 4, xCells * yCells * 6, 2, 4);
-	TextureGrid out { geom, (unsigned char*)calloc(xCells * yCells,sizeof(unsigned char)), xCells, yCells };
+	TextureGrid out { geom, (unsigned char*)calloc(xCells * yCells,sizeof(unsigned char)), xCells, yCells, xPoints, yPoints };
 	return out;
 }
 
@@ -407,6 +250,7 @@ void destroyTextureGrid(TextureGrid& grid)
 	free(grid.grid);
 	free(grid.geom.vertices);
 	free(grid.geom.indices);
+	free(grid.xPoints);
 }
 
 void updateHighScore(unsigned int level, double time, unsigned int steps)
@@ -591,7 +435,7 @@ void updateState(Window& win, State& state)
 
 			clearTextureGrid(*state.grid, 0);
 			destroyMap(*state.map);
-			*state.map = loadMap(mapName);
+			*state.map = createMap(mapName);
 			initMapCentred(*state.map, *state.grid, state);
 
 			sprintf(stepsText, "Steps: %d", steps = 0);
@@ -630,7 +474,7 @@ void updateState(Window& win, State& state)
 
 		clearTextureGrid(*state.grid, 0);
 		destroyMap(*state.map);
-		*state.map = loadMap(mapName);
+		*state.map = createMap(mapName);
 		initMapCentred(*state.map, *state.grid, state);
 
 		sprintf(stepsText, "Steps: %d", steps = 0);
@@ -685,7 +529,7 @@ void dllMain(Window& win)
 
 	mapName = dynamicTextBuffer;
 	memcpy(mapName, "src/games/sokoban/maps/map0.map", 32);
-	Map map = loadMap(mapName);
+	Map map = createMap(mapName);
 
 	levelText = mapName + 33;
 	memcpy(levelText, "Level: 1", 9);

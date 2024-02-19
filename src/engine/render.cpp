@@ -3,9 +3,9 @@
 #include "glad/glad.h"
 #include "utilities.h"
 #include <memory>
-#include <iostream>
+#include <stdio.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 
 unsigned int currentShader = 0;
 
@@ -19,7 +19,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
 
 	if (vertexShaderSource == 0 || fragmentShaderSource == 0)
 	{
-		std::cerr << "Shader Source Path Doesn't Exist\n";
+		fprintf(stderr, "Shader Source Path Doesn't Exist\n");
 		s.valid = false;
 		return s;
 	}
@@ -35,7 +35,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
 	if (!result)
 	{
 		glGetShaderInfoLog(vert, 512, 0, info);
-		std::cerr << "Vertex Shader Couldn't Compile:\n" << info << "\n\n";
+		fprintf(stderr, "Vertex Shader Couldn't Compile:\n%s\n\n", info);
 		s.valid = false;
 	}
 
@@ -46,7 +46,7 @@ Shader createShader(const char* vsPath, const char* fsPath)
 	if (!result)
 	{
 		glGetShaderInfoLog(frag, 512, 0, info);
-		std::cerr << "Fragment Shader Couldn't Compile:\n" << info << "\n\n";
+		fprintf(stderr, "Fragment Shader Couldn't Compile:\n%s\n\n", info);
 		s.valid = false;
 	}
 
@@ -59,11 +59,11 @@ Shader createShader(const char* vsPath, const char* fsPath)
 	if (!result)
 	{
 		glGetProgramInfoLog(s.ID, 512, 0, info);
-		std::cout << "Shader Program couldn't Link:\n" << info << "\n\n";
+		fprintf(stdout, "Shader Program couldn't Link:\n%s\n\n", info);
 		s.valid = false;
 	}
 	else
-		IFDBG(std::cout << "Shader program successfully compiled!\n";)
+		IFDBG(fprintf(stdout, "Shader program successfully compiled!\n"));
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);

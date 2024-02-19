@@ -131,7 +131,7 @@ extern "C"
         destroyBasicGrid = (DestroyBasicGridFunc)functionArray[33];
 
         //Run the game function defined in the dll code
-        dllMain(win);;
+        dllMain(win);
     }
 }
 

@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include "utilities.h"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
+#include <stb_truetype.h>
 #include <fstream>
 #include <iostream>
 
@@ -76,7 +76,7 @@ Font& loadSharedFont(const char* name, const char* path)
 
 	if (nSharedFonts >= AG_MAX_SHARED_FONTS)
 	{
-		std::cerr << "Unable to share font: AG_MAX_SHARED_FONTS reached\n";
+		fprintf(stderr, "Unable to share font: AG_MAX_SHARED_FONTS reached\n");
 		return font;
 	}
 

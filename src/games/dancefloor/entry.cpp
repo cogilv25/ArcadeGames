@@ -1,5 +1,5 @@
 #define AG_GAME_DLL
-#include "binary_interface.h"
+#include "ABI.h"
 #include <iostream>
 
 struct DanceFloor
@@ -119,7 +119,7 @@ void dllMain(Window& win)
 
 	Font font = loadFont("assets/Spectral.ttf");
 	if (!font.valid)
-		std::cerr << "Could not load font @ assets/Spectral.ttf\n";
+		fprintf(stderr, "Could not load font @ assets/Spectral.ttf\n");
 
 	StaticText tb = createStaticText("This is the first thing I made, and just a simple little example...", font);
 

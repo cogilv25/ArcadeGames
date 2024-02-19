@@ -28,7 +28,7 @@ void initializeEngine(Window& win)
 
 
     if (!gladLoadGLLoader((GLADloadproc)getGLProcFunctionPointer(win)))
-        std::cerr << "Fatal Error: GLAD failed to initialise" << std::endl;
+        fprintf(stderr, "Fatal Error: GLAD failed to initialise\n");
 
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &engine.maxTextureSize);
 
